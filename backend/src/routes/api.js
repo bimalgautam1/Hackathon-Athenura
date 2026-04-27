@@ -7,6 +7,7 @@
 import { Router } from 'express';
 
 // Import module routers - add new modules here
+import authRouter from '../modules/auth/auth.routes.js';
 import universityRouter from '../modules/universities/university.routes.js';
 import notificationRouter from '../modules/notifications/notification.routes.js';
 import certificateRouter from '../modules/certificates/certificate.routes.js';
