@@ -1,4 +1,4 @@
 /**
- * hackathon.policy.js
- * Checks authorization and access rules for hackathon records.
+  hackathon.policy.js
+  Checks authorization and access rules for hackathon records.
  */

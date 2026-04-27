@@ -1,4 +1,4 @@
 /**
- * team.routes.js
- * Defines Express routes for the team domain.
+  team.routes.js
+  Defines Express routes for the team domain.
  */

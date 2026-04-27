@@ -1,4 +1,4 @@
 /**
- * auth.tokens.js
- * Token generation and verification logic.
+  auth.tokens.js
+  Token generation and verification logic.
  */

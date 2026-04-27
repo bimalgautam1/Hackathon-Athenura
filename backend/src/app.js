@@ -1,6 +1,6 @@
 /**
- * app.js
- * Main Express application setup, error handling, and routing initialization.
+  app.js
+  Main Express application setup, error handling, and routing initialization.
  */
 
 import express from 'express'

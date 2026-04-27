@@ -1,4 +1,4 @@
 /**
- * team.repository.js
- * Encapsulates database reads/writes for team.
+  team.repository.js
+  Encapsulates database reads/writes for team.
  */

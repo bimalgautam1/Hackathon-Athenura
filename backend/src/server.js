@@ -1,6 +1,6 @@
 /**
- * server.js
- * Entry point for the application. Starts the server and connects to the database.
+  server.js
+  Entry point for the application. Starts the server and connects to the database.
  */
 import app from './app';
 import db from './db';

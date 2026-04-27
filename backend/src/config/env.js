@@ -1,6 +1,6 @@
 /**
- * env.js
- * Environment variable validation and export.
+  env.js
+  Environment variable validation and export.
  */
 
 import {config} from 'dotenv';

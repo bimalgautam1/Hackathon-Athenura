@@ -1,6 +1,6 @@
 /**
- * notFound.middleware.js
- * Catches undefined routes and returns a 404 JSON response.
+  notFound.middleware.js
+  Catches undefined routes and returns a 404 JSON response.
  */
 
 const notFound = (req, res, next) => {

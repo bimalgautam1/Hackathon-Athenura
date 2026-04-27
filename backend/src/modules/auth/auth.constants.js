@@ -1,4 +1,4 @@
 /**
- * auth.constants.js
- * Auth specific constants and enums.
+  auth.constants.js
+  Auth specific constants and enums.
  */

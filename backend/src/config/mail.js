@@ -1,4 +1,4 @@
 /**
- * mail.js
- * SMTP / Mail service configuration.
+  mail.js
+  SMTP / Mail service configuration.
  */

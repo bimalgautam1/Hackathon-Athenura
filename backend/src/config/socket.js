@@ -1,4 +1,4 @@
 /**
- * socket.js
- * Socket.io configuration and initialization.
+  socket.js
+  Socket.io configuration and initialization.
  */

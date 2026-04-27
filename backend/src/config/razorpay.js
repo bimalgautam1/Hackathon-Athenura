@@ -1,4 +1,4 @@
 /**
- * razorpay.js
- * Razorpay payment gateway configuration.
+  razorpay.js
+  Razorpay payment gateway configuration.
  */

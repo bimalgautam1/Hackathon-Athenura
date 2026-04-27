@@ -1,4 +1,4 @@
 /**
- * auth.repository.js
- * Encapsulates database reads/writes for auth.
+  auth.repository.js
+  Encapsulates database reads/writes for auth.
  */

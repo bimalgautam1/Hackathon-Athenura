@@ -1,6 +1,6 @@
 /**
- * errorHandler.js
- * Central error translator that turns thrown exceptions into safe, structured API responses.
+  errorHandler.js
+  Central error translator that turns thrown exceptions into safe, structured API responses.
  */
 
 const errorHandler = (err, req, res, next) => {

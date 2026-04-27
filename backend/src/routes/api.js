@@ -1,13 +1,14 @@
 /**
- * api.js
- * Main API router that aggregates all module routers.
- * Each module exports an Express router from its [module].routes.js file.
+  api.js
+  Main API router that aggregates all module routers.
+  Each module exports an Express router from its [module].routes.js file.
  */
 
 import { Router } from 'express';
 
 // Import module routers - add new modules here
 import authRouter from '../modules/auth/auth.routes.js';
+import adminRouter from '../modules/admin/admin.routes.js';
 import universityRouter from '../modules/universities/university.routes.js';
 import notificationRouter from '../modules/notifications/notification.routes.js';
 import certificateRouter from '../modules/certificates/certificate.routes.js';
@@ -21,6 +22,8 @@ const router = Router();
 
 // Mount all module routers under /api
 // Example: /api/universities, /api/teams, etc.
+router.use('/auth', authRouter);
+router.use('/admin', adminRouter);
 router.use('/universities', universityRouter);
 router.use('/notifications', notificationRouter);
 router.use('/certificates', certificateRouter);

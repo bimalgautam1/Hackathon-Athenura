@@ -1,4 +1,4 @@
 /**
- * cloudinary.js
- * Cloudinary credentials and connection setup.
+  cloudinary.js
+  Cloudinary credentials and connection setup.
  */

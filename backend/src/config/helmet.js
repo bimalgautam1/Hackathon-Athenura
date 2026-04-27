@@ -1,4 +1,4 @@
 /**
- * helmet.js
- * Helmet security headers configuration.
+  helmet.js
+  Helmet security headers configuration.
  */

@@ -1,6 +1,6 @@
 /**
- * db.js
- * Database connection and configuration setup.
+  db.js
+  Database connection and configuration setup.
  */
 import mongoose from 'mongoose';
 import envConfig from './env.js';

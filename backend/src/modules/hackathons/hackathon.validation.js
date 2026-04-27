@@ -1,4 +1,4 @@
 /**
- * hackathon.validation.js
- * Declares request validation rules for hackathon payloads.
+  hackathon.validation.js
+  Declares request validation rules for hackathon payloads.
  */

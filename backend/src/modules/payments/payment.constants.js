@@ -1,4 +1,4 @@
 /**
- * payment.constants.js
- * Keeps enums, status values, event names, and fixed configuration used only by the payment module.
+  payment.constants.js
+  Keeps enums, status values, event names, and fixed configuration used only by the payment module.
  */

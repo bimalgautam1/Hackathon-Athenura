@@ -1,4 +1,4 @@
 /**
- * rateLimit.js
- * Global rate limiting configuration.
+  rateLimit.js
+  Global rate limiting configuration.
  */

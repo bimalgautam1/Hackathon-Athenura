@@ -1,4 +1,4 @@
 /**
- * hackathon.controller.js
- * Handles HTTP request/response flow for hackathon.
+  hackathon.controller.js
+  Handles HTTP request/response flow for hackathon.
  */

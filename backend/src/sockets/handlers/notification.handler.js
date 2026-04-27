@@ -1,4 +1,4 @@
 /**
- * notification.handler.js
- * Handles generic notification-related socket emission logic.
+  notification.handler.js
+  Handles generic notification-related socket emission logic.
  */

@@ -1,4 +1,4 @@
 /**
- * user.mapper.js
- * Maps database user records to API response models.
+  user.mapper.js
+  Maps database user records to API response models.
  */

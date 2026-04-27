@@ -1,4 +1,4 @@
 /**
- * team.policy.js
- * Checks authorization and access rules for team management.
+  team.policy.js
+  Checks authorization and access rules for team management.
  */

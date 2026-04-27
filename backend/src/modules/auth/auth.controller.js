@@ -1,4 +1,4 @@
 /**
- * auth.controller.js
- * Handles HTTP request/response flow for auth.
+  auth.controller.js
+  Handles HTTP request/response flow for auth.
  */

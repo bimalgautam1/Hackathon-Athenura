@@ -1,4 +1,4 @@
 /**
- * auth.routes.js
- * Defines Express routes for the auth domain.
+  auth.routes.js
+  Defines Express routes for the auth domain.
  */
