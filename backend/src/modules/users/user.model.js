@@ -3,9 +3,11 @@
   Defines the Mongoose schema and model for user records.
  */
 import mongoose from "mongoose";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import { userRoles, userRolesEnums } from "./user.constants.js";
+import bcrypt from "bcryptjs";
+import crypto from 'crypto'
+import jwt from 'jsonwebtoken'
+import { accessTokenExpiry, accessTokenSecret, refreshTokenExpiry, refreshTokenSecret } from "../../utils/config.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -14,111 +16,109 @@ const userSchema = new mongoose.Schema(
       required: [true, "Full Name is required"],
     },
     email: {
-      type: String,
+      type :  String,
       required: [true, "Email is required"],
       lowercase: true,
-      match: [
+      match : [
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
         "Email format is incorrect. Use a valid format such as name@example.com (e.g., jane.smith@gmail.com) .",
       ],
-      unique: true,
+      unique:true
     },
-    password: {
-      type: String,
-      required: [true, "Password is required"],
+    password : {
+      type : String,
+      required : [true, "Password is required"],
     },
-    phone: {
-      type: Number,
-      required: [true, "Phone no. is required"],
-      unique: true,
+    phone:{
+      type : Number,
+      required : [true, "Phone no. is required"],
+      unique : true
     },
-    dob: {
-      type: Date,
-      required: [true, "Date of Birth is required"],
+    dob : {
+      type : Date,
+      required : [true,"Date of Birth is required"]
     },
-    clgOrUni: {
-      type: String,
-      required: [true, "College or University is required"],
+    clgOrUni : {
+      type : String,
+      required : [true,"College or University is required"]
     },
-    graduationYear: {
-      type: Date,
-      required: [true, "Graduation Year is required"],
+    graduationYear : {
+      type : Number,
+      required : [true,"Graduation Year is required"]
     },
-    skills: {
-      type: [String],
-      default: [],
+    skills : {
+      type : [String],
+      default : [],
+    } ,
+    resumeLink : {
+      type : String
     },
-    resumeLink: {
-      type: String,
+    role : {
+      type : String,
+      enums : userRolesEnums,
+      default : userRoles.USER
     },
-    role: {
-      type: String,
-      enum: userRolesEnums,
-      required: true,
-      default: userRoles.USER,
+    refreshToken : {
+      type : String,
+      default : ""
     },
-    refreshToken: {
-      type: String,
+    isEmailVerified : {
+      type : Boolean,
+      default : false
     },
-    isEmailVerified: {
-      type: Boolean,
-      default: false,
+    emailVerificationToken : {
+      type : String
     },
-    emailVarificationTokan: {
-      type: String,
+    emailVerificationTokenExpiry : {
+      type : Date
     },
-    emailVarificationExpiry: {
-      type: Date,
+    emailOTP : {
+      type : String,
     },
-    emailOtp: {
-      type: String,
+    emailOTPExpiry : {
+      type : Date
     },
-    emailOtpExpiry: {
-      type: Date,
+    resetPasswordToken : {
+      type : String,
     },
-    resetPasswordToken: {
-      type: String,
-    },
-    resetPasswordExpiry: {
-      type: Date,
-    },
+    resetPasswordTokenExpiry : {
+      type : Date
+    }
   },
   {
     timestamps: true,
   },
 );
 
-userSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
-  this.password = await bcrypt.hash(this.password, 10);
-});
 
-userSchema.methods.isPasswordCorrect = async function (password) {
-  return await bcrypt.compare(password, this.password);
-};
+userSchema.pre("save", async function() {
+    if(!this.isModified("password")) return ;
+    this.password = await bcrypt.hash(this.password, 10)
+})
 
-userSchema.methods.generateAccessToken = function () {
-  const payload = {
-    _id: this._id,
-    fullName: this.fullName,
-    email: this.email,
-    phone: this.phone,
-  };
-  return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
-    expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
-  });
-};
+userSchema.methods.isPasswordCorrect =async function(password){
+    return await bcrypt.compare(password, this.password)
+}
 
-userSchema.methods.generateRefreshToken = function () {
-  const payload = {
-    _id: this._id,
-  };
-  return jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
-    expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
-  });
-};
+userSchema.methods.generateAccessToken = function() {
+   return jwt.sign({
+      _id : this._id,
+      fullName : this.fullName,
+      email : this.email,
+    }, accessTokenSecret, {
+    expiresIn : accessTokenExpiry
+   })
+}
 
-userSchema.methons.generateTemporaryToken = function () {
+userSchema.methods.generateRefreshToken = function() {
+   return jwt.sign({
+      _id : this._id
+    }, refreshTokenSecret, {
+    expiresIn :  refreshTokenExpiry
+   })
+}
+
+userSchema.methods.generateTemporaryToken = function () {
   const unHashedToken = crypto.randomBytes(20).toString("hex");
 
   const hashedToken = crypto
@@ -126,7 +126,7 @@ userSchema.methons.generateTemporaryToken = function () {
     .update(unHashedToken)
     .digest("hex");
 
-  const tokenExpiry = Date.now() * 10 * 60 * 1000;
+  const tokenExpiry = Date.now() + 10 * 60 * 1000;
 
   return {
     unHashedToken,
@@ -135,6 +135,5 @@ userSchema.methons.generateTemporaryToken = function () {
   };
 };
 
-
-const User = mongoose.model("User",userschema)
+const User = mongoose.model("User",userSchema)
 export default User;
