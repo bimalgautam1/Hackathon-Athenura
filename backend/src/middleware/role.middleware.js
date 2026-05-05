@@ -1,5 +1,23 @@
 /**
   role.middleware.js
-  Restricts routes by role, such as admi-only, judge-only, or university-only access, student
+  Restricts routes by role, such as admin-only, judge-only, or university-only access
  */
-//admin, judge, university, student are the roles that we have defined in the database. We will use these roles to restrict access to certain routes. For example, only admin can access the route to create a new user, only judge can access the route to view the submissions, only university can access the route to view the students, and only student can access the route to view the challenges.
+import ApiError from "../libs/apiError.js"
+import asyncHandler from "../libs/asyncHandler.js"
+
+export const restrictTo = (...allowedRoles) => {
+  return asyncHandler(async (req, next) => {
+    // Check if user is authenticated (req.user should be set by auth.middleware)
+    if (!req.user) {
+      throw new ApiError(401, "Please login to access this resource")
+    }
+    // Check if user's role is in the allowed roles
+    if (!allowedRoles.includes(req.user.role)) {
+      throw new ApiError(
+        403,
+        'You do not have permission to perform this action.'
+      )
+    }
+    next()
+  })
+}

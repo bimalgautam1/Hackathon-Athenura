@@ -4,10 +4,10 @@
  */
 //jwt is used to verify the token
 import User from "../modules/users/user.model.js"
-import ApiError from "../utils/ApiError.js"
+import ApiError from "../libs/apiError.js"
 import jwt from "jsonwebtoken"
-import { accessTokenSecret } from "../utils/config.js"
-import asyncHandler from '../utils/asyncHandler.js';
+import envConfig from "../config/envConfig.js"
+import asyncHandler from '../libs/asyncHandler.js';
 
 export const verifyJWT = asyncHandler(async (req, res, next) => {
   const token =
@@ -19,7 +19,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     throw new ApiError(401, "Unauthorized request")
   }
 
-  const decodedToken = jwt.verify(token, accessTokenSecret)
+  const decodedToken = jwt.verify(token, envConfig.accessTokenSecret)
 
   const user = await User.findById(decodedToken._id).select(
     "-password -refreshToken"
@@ -35,24 +35,8 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
 })
 
 export const verifyAdmin = asyncHandler(async (req, res, next) => {
- try {
-     if (!req.user) {
-    // If verifyJWT wasn't called before this, we must do it now
-    const token =
-      req.cookies?.accessToken ||
-      req.header("Authorization")?.replace("Bearer ", "");
-
-    if (!token) {
-      throw new ApiError(401, "Unauthorized request");
-    }
-
-    const decodedToken = jwt.verify(token, accessTokenSecret);
-    const user = await User.findById(decodedToken._id).select("-password -refreshToken");
-
-    if (!user) {
-      throw new ApiError(401, "Invalid access token");
-    }
-    req.user = user;
+  if (!req.user) {
+    throw new ApiError(401, "Authentication required");
   }
 
   if (req.user.role !== "admin") {
@@ -60,7 +44,4 @@ export const verifyAdmin = asyncHandler(async (req, res, next) => {
   }
 
   next();
- } catch (error) {
-    throw new ApiError(401, error.message || "Unauthorized requrest")
- }
 });
