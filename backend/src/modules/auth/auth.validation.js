@@ -89,6 +89,30 @@ export const resendVerificationValidation = Joi.object({
   email: emailSchema
 })
 
+// Forgot password validation
+export const forgotPasswordValidation = Joi.object({
+  email: emailSchema,
+  phone: phoneSchema
+}).or("email", "phone").messages({
+  "object.missing": "Either email or phone is required"
+})
+
+// Reset password validation
+export const resetPasswordValidation = Joi.object({
+  token: Joi.string().required().messages({
+    "any.required": "Reset token is required"
+  }),
+  newPassword: passwordSchema
+})
+
+// Verify email with token validation
+export const verifyEmailTokenValidation = Joi.object({
+  token: Joi.string().required().messages({
+    "any.required": "Verification token is required"
+  }),
+  email: emailSchema.optional()
+})
+
 // Validation middleware factory
 export const validate = (schema) => {
   return (req, res, next) => {

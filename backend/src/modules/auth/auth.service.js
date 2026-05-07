@@ -242,24 +242,87 @@ class AuthService {
   }
 
   /**
-   * Refresh access token using refresh token
+   * Forgot password service
    */
-  async refreshAccessTokenService(incomingRefreshToken) {
-    const decodedToken = jwt.verify(incomingRefreshToken, envConfig.refreshTokenSecret)
+  async forgotPasswordService(email, phone) {
+    let user
 
-    const user = await authRepository.findUserById(decodedToken._id)
+    if (email) {
+      user = await authRepository.findUserByEmail(email)
+    } else if (phone) {
+      user = await authRepository.userExistsByPhone(phone)
+    }
 
     if (!user) {
       throw new Error("User not found")
     }
 
-    if (user.refreshToken !== incomingRefreshToken) {
-      throw new Error("Refresh token expired or used")
+    // Generate reset token
+    const resetToken = userUtils.generateResetToken()
+    const hashedResetToken = await userUtils.hashToken(resetToken)
+
+    user.resetPasswordToken = hashedResetToken
+    user.resetPasswordTokenExpiry = userUtils.getResetTokenExpiryTime()
+
+    await authRepository.saveUser(user, { validateBeforeSave: false })
+
+    // TODO: Send email or SMS with reset token
+    // For now, return the token (in production, send via email/SMS)
+    console.log("Reset token:", resetToken)
+
+    return { message: "Password reset link sent to your email" }
+  }
+
+  /**
+   * Reset password service
+   */
+  async resetPasswordService(token, newPassword) {
+    const hashedToken = await userUtils.hashToken(token)
+
+    const user = await authRepository.findUserByResetToken(hashedToken)
+
+    if (!user || user.passwordResetTokenExpiry < Date.now()) {
+      throw new Error("Invalid or expired reset token")
     }
 
-    const { accessToken, refreshToken } = await this.generateAccessAndRefreshTokens(user)
+    user.password = newPassword
+    user.passwordResetToken = undefined
+    user.passwordResetTokenExpiry = undefined
 
-    return { accessToken, refreshToken }
+    await authRepository.saveUser(user)
+
+    return { message: "Password reset successfully" }
+  }
+
+  /**
+   * Verify email with token service
+   */
+  async verifyEmailWithTokenService(token, email) {
+    const hashedToken = await userUtils.hashToken(token)
+
+    let user
+
+    if (email) {
+      user = await authRepository.findUserByEmail(email)
+    } else {
+      user = await authRepository.findUserByVerificationToken(hashedToken)
+    }
+
+    if (!user) {
+      throw new Error("User not found")
+    }
+
+    if (user.emailVerificationToken !== hashedToken || user.emailVerificationTokenExpiry < Date.now()) {
+      throw new Error("Invalid or expired verification token")
+    }
+
+    user.isEmailVerified = true
+    user.emailVerificationToken = undefined
+    user.emailVerificationTokenExpiry = undefined
+
+    await authRepository.saveUser(user, { validateBeforeSave: false })
+
+    return { message: "Email verified successfully" }
   }
 }
 

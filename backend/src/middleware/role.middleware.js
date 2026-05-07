@@ -6,7 +6,7 @@ import ApiError from "../libs/apiError.js"
 import asyncHandler from "../libs/asyncHandler.js"
 
 export const restrictTo = (...allowedRoles) => {
-  return asyncHandler(async (req, next) => {
+  return asyncHandler(async (req, res, next) => {
     // Check if user is authenticated (req.user should be set by auth.middleware)
     if (!req.user) {
       throw new ApiError(401, "Please login to access this resource")
