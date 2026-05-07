@@ -30,6 +30,10 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     throw new ApiError(401, "Invalid access token")
   }
 
+  if (user.isSuspended) {
+    throw new ApiError(403, "User account has been suspended")
+  }
+
   req.user = user
   next()
 })
@@ -39,7 +43,7 @@ export const verifyAdmin = asyncHandler(async (req, res, next) => {
     throw new ApiError(401, "Authentication required");
   }
 
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "Admin") {
     throw new ApiError(403, "Only admin can perform this action");
   }
 

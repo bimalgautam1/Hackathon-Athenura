@@ -3,10 +3,14 @@
   Defines Express routes for the user domain.
  */
 import { Router } from "express"
+import userController from './user.controller.js'
+import { verifyJWT } from '../../middleware/auth.middleware.js'
+import asyncHandler from '../../libs/asyncHandler.js'
+import { validate, updateProfileValidation } from './user.validation.js'
 
 const router = Router()
 
-// User profile and management routes will be added here
-// Auth routes have been moved to auth.routes.js
+router.route("/me").get(verifyJWT, asyncHandler(userController.getProfile))
+router.route("/me").patch(verifyJWT, validate(updateProfileValidation), asyncHandler(userController.updateProfile))
 
-export default router;
+export default router

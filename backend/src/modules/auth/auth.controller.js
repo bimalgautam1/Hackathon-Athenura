@@ -94,6 +94,30 @@ class AuthController {
       )
   }
 
+  async forgotPassword(req, res) {
+    const { email, phone } = req.body
+
+    const result = await authService.forgotPasswordService(email, phone)
+
+    return res.status(200).json(new ApiResponse(200, {}, result.message))
+  }
+
+  async resetPassword(req, res) {
+    const { token, newPassword } = req.body
+
+    const result = await authService.resetPasswordService(token, newPassword)
+
+    return res.status(200).json(new ApiResponse(200, {}, result.message))
+  }
+
+  async verifyEmailWithToken(req, res) {
+    const { token, email } = req.body
+
+    const result = await authService.verifyEmailWithTokenService(token, email)
+
+    return res.status(200).json(new ApiResponse(200, {}, result.message))
+  }
+
   async logoutUser(req, res) {
     await authService.logoutUserService(req.user._id)
 

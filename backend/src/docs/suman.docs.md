@@ -228,3 +228,199 @@ json
         updatedAt: "2026-05-07T10:40:00Z"
     }
 }
+
+
+
+
+## API #8: Forgot Password
+
+
+POST http://localhost:5000/api/v1/auth/forgot-password
+
+
+Headers:
+
+Content-Type: application/json
+
+
+Payload:
+json
+{
+  "email": "string (required, valid email format)"
+}
+
+
+Example Payload:
+json
+{
+  "email": "user@example.com"
+}
+
+
+Response (200):
+json
+{
+  "success": true,
+  "message": "Password reset email sent successfully"
+}
+
+
+
+
+## API #9: Reset Password
+
+
+POST http://localhost:5000/api/v1/auth/reset-password
+
+
+Headers:
+
+Content-Type: application/json
+
+
+Payload:
+json
+{
+  "token": "string (required, reset token from email)",
+  "newPassword": "string (required, min 8 characters)"
+}
+
+
+Example Payload:
+json
+{
+  "token": "reset_token_here",
+  "newPassword": "newpassword123"
+}
+
+
+Response (200):
+json
+{
+  "success": true,
+  "message": "Password reset successfully"
+}
+
+
+
+
+## API #10: Verify Email
+
+
+POST http://localhost:5000/api/v1/auth/verify-email/:token
+
+
+Headers:
+
+Content-Type: application/json
+
+
+Payload:
+json
+{
+  "email": "string (optional, email to verify)"
+}
+
+
+Example Payload:
+json
+{
+  "email": "user@example.com"
+}
+
+
+Response (200):
+json
+{
+  "success": true,
+  "message": "Email verified successfully"
+}
+
+
+
+
+## API #11: Get Current User Profile
+
+
+GET http://localhost:5000/api/v1/users/me
+
+
+Headers:
+
+Authorization: Bearer <access_token>
+
+
+Response (200):
+json
+{
+  "success": true,
+  "data": {
+    "_id": "user_object_id",
+    "fullName": "John Doe",
+    "email": "john@example.com",
+    "phone": 9876543210,
+    "dateOfBirth": "1995-05-15T00:00:00.000Z",
+    "collegeOrUniversity": "Example University",
+    "graduationYear": 2025,
+    "skills": ["JavaScript", "React", "Node.js"],
+    "resumeLink": "https://example.com/resume.pdf",
+    "gender": "Male",
+    "role": "user",
+    "isEmailVerified": true,
+    "isSuspended": false,
+    "createdAt": "2026-05-06T14:00:00.000Z",
+    "updatedAt": "2026-05-06T14:00:00.000Z"
+  }
+}
+
+
+
+
+## API #12: Update User Profile
+
+
+PATCH http://localhost:5000/api/users/me
+
+
+Headers:
+
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+
+Payload:
+json
+{
+  "fullName": "string (optional, min 2, max 100 chars)",
+  "phone": "number (optional, positive integer)",
+  "dateOfBirth": "date (optional, must be in past)",
+  "collegeOrUniversity": "string (optional, max 200 chars)",
+  "graduationYear": "number (optional, 1900 to current_year + 10)",
+  "skills": "array of strings or comma-separated string (optional)",
+  "resumeLink": "string (optional, valid URL)"
+}
+
+
+Example Payload:
+json
+{
+  "fullName": "Updated Name",
+  "phone": 9876543210,
+  "skills": ["JavaScript", "React"]
+}
+
+
+Response (200):
+json
+{
+  "success": true,
+  "message": "Profile updated successfully",
+  "data": {
+    "_id": "user_object_id",
+    "fullName": "Updated Name",
+    "email": "john@example.com",
+    "phone": 9876543210,
+    "skills": ["JavaScript", "React"],
+    "updatedAt": "2026-05-06T15:00:00.000Z"
+  }
+}

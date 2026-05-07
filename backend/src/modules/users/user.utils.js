@@ -1,6 +1,7 @@
 //user.utils.js - Helper utilities for user module.
 
 import bcrypt from "bcryptjs"
+import crypto from "crypto"
 import envConfig from "../../config/envConfig.js"
 import { userRoles } from "./user.constants.js"
 
@@ -45,6 +46,21 @@ class UserUtils {
   //Get user fields to exclude from response
   getSensitiveFieldsToExclude() {
     return "-password -emailOTP -emailVerificationToken -refreshToken"
+  }
+
+  //Generate reset token
+  generateResetToken() {
+    return crypto.randomBytes(32).toString('hex')
+  }
+
+  //Hash token
+  async hashToken(token) {
+    return await bcrypt.hash(token, 10)
+  }
+
+  //Get reset token expiry time (1 hour from now)
+  getResetTokenExpiryTime() {
+    return Date.now() + 60 * 60 * 1000
   }
 
   //Build user data object for registration
