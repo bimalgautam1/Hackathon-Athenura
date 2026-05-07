@@ -10,7 +10,7 @@ class TeamService {
   /**
    * Create a new team for a hackathon
    */
-  async createTeam({ hackathonId, name, description, leaderId }) {
+  async createTeam({ hackathonId, teamName, description, leaderId }) {
     // Check if user is already in a team for this hackathon
     const existingTeam = await teamRepository.findByHackathonAndMember(
       hackathonId,
@@ -27,7 +27,7 @@ class TeamService {
     // Create team with leader as first member
     const teamData = {
       hackathonId,
-      name,
+      teamName,
       description,
       leader: leaderId,
       members: [

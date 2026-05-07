@@ -6,7 +6,7 @@ import Joi from "joi";
 
 // Create team validation
 export const createTeamValidation = Joi.object({
-  name: Joi.string()
+  teamName: Joi.string()
     .min(3)
     .max(50)
     .required()
@@ -28,7 +28,7 @@ export const createTeamValidation = Joi.object({
 
 // Update team validation
 export const updateTeamValidation = Joi.object({
-  name: Joi.string()
+  teamName: Joi.string()
     .min(3)
     .max(50)
     .trim()

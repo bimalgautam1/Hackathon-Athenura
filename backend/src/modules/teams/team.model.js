@@ -29,7 +29,7 @@ const teamSchema = new mongoose.Schema(
       ref: "Hackathon",
       required: [true, "Hackathon ID is required"]
     },
-    name: {
+    teamName: {
       type: String,
       required: [true, "Team name is required"],
       trim: true,

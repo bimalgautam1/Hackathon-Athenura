@@ -25,15 +25,14 @@ router.post(
 );
 
 // Get team details
-router.get(
-  "/teams/:teamId",
+router.get("/:teamId",
   verifyJWT,
   asyncHandler(teamController.getTeam)
 );
 
 // Update team metadata (leader only)
 router.patch(
-  "/teams/:teamId",
+  "/:teamId",
   verifyJWT,
   asyncHandler(teamPolicy.isTeamLeader),
   validate(updateTeamValidation),
@@ -42,7 +41,7 @@ router.patch(
 
 // Invite member to team (leader only)
 router.post(
-  "/teams/:teamId/invitations",
+  "/:teamId/invitations",
   verifyJWT,
   asyncHandler(teamPolicy.isTeamLeader),
   validate(inviteMemberValidation),
@@ -65,7 +64,7 @@ router.post(
 
 // Remove member from team (leader only)
 router.delete(
-  "/teams/:teamId/members/:userId",
+  "/:teamId/members/:userId",
   verifyJWT,
   asyncHandler(teamPolicy.isTeamLeader),
   asyncHandler(teamController.removeMember)

@@ -12,12 +12,12 @@ class TeamController {
    */
   async createTeam(req, res) {
     const { hackathonId } = req.params;
-    const { name, description } = req.body;
+    const { teamName, description } = req.body;
     const leaderId = req.user._id;
 
     const team = await teamService.createTeam({
       hackathonId,
-      name,
+      teamName,
       description,
       leaderId
     });
