@@ -1,4 +1,18 @@
 /**
   judging.policy.js
-  Checks authorization and object-level access rules for judging, such as ownership, role, and state checks.
+  Ownership and access logic for judging.
  */
+
+class JudgingPolicy {
+  isScoreOwner(score, judgeId) {
+    if (!score || !score.judgeId) return false;
+    return score.judgeId.toString() === judgeId.toString();
+  }
+
+  isAssignedJudge(assignment) {
+    return !!assignment;
+  }
+}
+
+const judgingPolicy = new JudgingPolicy();
+export default judgingPolicy;

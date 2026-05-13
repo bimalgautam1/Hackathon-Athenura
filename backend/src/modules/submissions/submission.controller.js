@@ -4,6 +4,7 @@
  */
 import ApiResponse from "../../libs/apiResponse.js"
 import submissionService from "./submission.service.js"
+import assetService from "./asset.service.js"
 
 class SubmissionController {
 
@@ -61,6 +62,20 @@ class SubmissionController {
     return res
       .status(200)
       .json(new ApiResponse(200, versions, "Versions fetched successfully"))
+  }
+
+  async uploadAssets(req, res) {
+    const { submissionId } = req.params
+
+    const submission = await assetService.addAssets(
+      submissionId,
+      req.user._id,
+      req
+    )
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, submission, "Assets uploaded successfully"))
   }
 }
 

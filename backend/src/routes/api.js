@@ -17,6 +17,7 @@ import teamRoute from '../modules/teams/team.routes.js';
 import hackathonRoute from '../modules/admin/hackathons/adminHackathon.routes.js';
 // import registrationRoute from '../modules/registrations/registration.routes.js';
 import submissionRoute from '../modules/submissions/submission.routes.js';
+import judgingRoute from '../modules/judging/judging.routes.js';
 // import resultRoute from '../modules/results/result.routes.js';
 
 const router = Router();
@@ -34,6 +35,7 @@ router.use('/hackathons', hackathonRoute);
 // router.use('/registrations', registrationRoute);
 router.use('/submissions', submissionRoute);
 // router.use('/results', resultRoute);
+router.use('/', judgingRoute);
 
 // Health check endpoint
 router.get('/health', (req, res) => {

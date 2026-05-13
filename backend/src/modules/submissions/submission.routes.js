@@ -51,4 +51,12 @@ router.route("/:submissionId/versions")
     asyncHandler(submissionController.getVersions)
   )
 
+// POST /api/v1/submissions/:submissionId/assets — Upload assets
+router.route("/:submissionId/assets")
+  .post(
+    verifyJWT,
+    validateParams(submissionIdParamValidation),
+    asyncHandler(submissionController.uploadAssets)
+  )
+
 export default router
