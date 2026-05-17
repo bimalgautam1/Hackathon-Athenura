@@ -40,12 +40,12 @@ class UserUtils {
 
   //Get OTP expiry time (10 minutes from now)
   getOTPExpiryTime() {
-    return Date.now() + 10 * 60 * 1000
+    return new Date(Date.now() + 10 * 60 * 1000)
   }
 
   //Get user fields to exclude from response
   getSensitiveFieldsToExclude() {
-    return "-password -emailOTP -emailVerificationToken -refreshToken"
+    return "-password -emailOTP -refreshToken -resetPasswordToken -resetPasswordTokenExpiry -emailOTPExpiry -emailVerificationToken -emailVerificationTokenExpiry"
   }
 
   //Generate reset token

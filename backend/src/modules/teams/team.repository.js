@@ -4,13 +4,35 @@
  */
 import Team from "./team.model.js";
 
+/**
+ * Safe fields to expose for user objects in team contexts
+ */
+const USER_SAFE_FIELDS = "fullName email phone collegeOrUniversity graduationYear skills resumeLink gender role";
+
 class TeamRepository {
-  /**
-   * Create a new team
-   */
-  async create(teamData) {
-    return await Team.create(teamData);
-  }
+   /**
+    * Get team size (count of accepted members only)
+    * Handles backward compatibility: members without invitationStatus are treated as accepted
+    */
+   getAcceptedMemberCount(team) {
+     return team.members.filter(m => {
+       const status = m.invitationStatus || 'accepted';
+       return status === 'accepted';
+     }).length;
+   }
+
+   /**
+    * Get all accepted member user IDs
+    * Handles backward compatibility: members without invitationStatus are treated as accepted
+    */
+   getAcceptedMemberIds(team) {
+     return team.members
+       .filter(m => {
+         const status = m.invitationStatus || 'accepted';
+         return status === 'accepted';
+       })
+       .map(m => m.userId);
+   }
 
   /**
    * Find team by ID
@@ -18,7 +40,12 @@ class TeamRepository {
   async findById(teamId, populateFields = []) {
     let query = Team.findById(teamId);
     populateFields.forEach(field => {
-      query = query.populate(field);
+      // Apply safe field selection for user-related populations
+      if (field === "leader" || field === "members.userId") {
+        query = query.populate(field, USER_SAFE_FIELDS);
+      } else {
+        query = query.populate(field);
+      }
     });
     return await query;
   }
@@ -44,24 +71,24 @@ class TeamRepository {
   /**
    * Update team
    */
-  async update(teamId, updateData) {
+  async update(teamId, updateData, options = {}) {
     return await Team.findByIdAndUpdate(
       teamId,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true, ...options }
     );
   }
 
-  /**
-   * Add member to team
-   */
-  async addMember(teamId, memberData) {
-    return await Team.findByIdAndUpdate(
-      teamId,
-      { $push: { members: memberData } },
-      { new: true }
-    );
-  }
+   /**
+    * Add member to team
+    */
+   async addMember(teamId, memberData) {
+     return await Team.findByIdAndUpdate(
+       teamId,
+       { $push: { members: { ...memberData, invitationStatus: "accepted" } } },
+       { new: true }
+     );
+   }
 
   /**
    * Remove member from team
@@ -72,6 +99,13 @@ class TeamRepository {
       { $pull: { members: { userId } } },
       { new: true }
     );
+  }
+
+  /**
+   * Create a new team
+   */
+  async create(data) {
+    return await Team.create(data);
   }
 
   /**

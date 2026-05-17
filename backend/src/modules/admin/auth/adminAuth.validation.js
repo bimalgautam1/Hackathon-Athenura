@@ -1,13 +1,8 @@
 /**
   adminAuth.validation.js
-  Joi validation schemas for admin authentication.
- */
+  Joi validation schemas for admin and judge authentication.
+*/
 import Joi from "joi"
-
-const emailSchema = Joi.string().email().required().messages({
-  "string.email": "Please provide a valid email address",
-  "any.required": "Email is required"
-})
 
 const passwordSchema = Joi.string().min(8).max(128).required().messages({
   "string.min": "Password must be at least 8 characters",
@@ -15,22 +10,44 @@ const passwordSchema = Joi.string().min(8).max(128).required().messages({
   "any.required": "Password is required"
 })
 
-// Admin registration validation
-export const adminRegisterValidation = Joi.object({
-  email: emailSchema,
-  password: passwordSchema,
-  confirmPassword: Joi.string().valid(Joi.ref("password")).required().messages({
-    "any.only": "Passwords do not match",
-    "any.required": "Confirm password is required"
-  }),
-  adminSecretKey: Joi.string().required().messages({
-    "any.required": "Admin secret key is required"
-  })
+const phoneSchema = Joi.number().integer().positive().required().messages({
+  "number.base": "Phone number must be a valid number",
+  "number.integer": "Phone number must be an integer",
+  "number.positive": "Phone number must be a positive number",
+  "any.required": "Phone number is required"
 })
 
-// Admin login validation
-export const adminLoginValidation = Joi.object({
-  email: emailSchema,
+const confirmPasswordSchema = Joi.string().valid(Joi.ref("password")).required().messages({
+  "any.only": "Passwords do not match",
+  "any.required": "Confirm password is required"
+})
+
+// ── Register validation — role decides which secret key is required ──────────
+export const registerAdminValidation = Joi.object({
+  email: Joi.string().email().required().messages({
+    "string.email": "Please provide a valid email address",
+    "any.required": "Email is required"
+  }),
+  password: passwordSchema,
+  confirmPassword: confirmPasswordSchema,
+  phone: phoneSchema,
+  role: Joi.string().valid("Admin", "Judge").required().messages({
+    "any.only": "Role must be either 'Admin' or 'Judge'",
+    "any.required": "Role is required"
+  }),
+  adminSecretKey: Joi.string().when("role", { is: "Admin", then: Joi.required(), otherwise: Joi.optional() }),
+  judgeSecretKey: Joi.string().when("role", { is: "Judge", then: Joi.required(), otherwise: Joi.optional() }),
+  judgeId: Joi.string().min(3).max(50).when("role", { is: "Judge", then: Joi.required(), otherwise: Joi.optional() })
+}).with("adminSecretKey", "role").with("judgeSecretKey", "judgeId").messages({
+  "any.only": "Role must be 'Admin' or 'Judge'"
+})
+
+// ── Login validation — no role or secret key in the body ────────────────────
+export const loginAdminValidation = Joi.object({
+  email: Joi.string().email().required().messages({
+    "string.email": "Please provide a valid email address",
+    "any.required": "Email is required"
+  }),
   password: Joi.string().required().messages({
     "any.required": "Password is required"
   })
@@ -39,18 +56,24 @@ export const adminLoginValidation = Joi.object({
 // Validate middleware
 export const validate = (schema) => {
   return (req, res, next) => {
-    const { error } = schema.validate(req.body, { abortEarly: false })
-    
+    const { error, value } = schema.validate(req.body, { 
+      abortEarly: false,
+      stripUnknown: true 
+    })
+
     if (error) {
-      const errorMessages = error.details.map((detail) => detail.message)
+      const errorMessages = error.details
+        .map((detail) => detail.message)
+        .join(", ")
+
       return res.status(400).json({
-        statusCode: 400,
         success: false,
-        message: "Validation failed",
+        message: "Validation error",
         errors: errorMessages
       })
     }
-    
+
+    req.body = value
     next()
   }
 }

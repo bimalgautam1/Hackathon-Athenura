@@ -1,11 +1,19 @@
 /**
-  auth.service.js
-  Contains the core business rules for auth.
- */
+   auth.service.js
+   Contains the core business rules for auth.
+*/
 import authRepository from "./auth.repository.js"
 import UserUtils from "../users/user.utils.js"
 import jwt from "jsonwebtoken"
 import envConfig from "../../config/envConfig.js"
+import ApiError from "../../libs/apiError.js"
+import {
+  sendEmail,
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  EMAIL_TYPES
+} from "../notifications/notification.mailer.js"
+
 const userUtils = new UserUtils()
 
 class AuthService {
@@ -85,12 +93,21 @@ class AuthService {
       existingUser.gender = gender
 
       const otp = userUtils.generateOTP()
+      console.log(otp);
+      
       const hashedOTP = await userUtils.hashOTP(otp)
 
       existingUser.emailOTP = hashedOTP
       existingUser.emailOTPExpiry = userUtils.getOTPExpiryTime()
 
       await authRepository.saveUser(existingUser, { validateBeforeSave: false })
+
+      // Send verification email
+      try {
+        await sendVerificationEmail(existingUser.email, otp, existingUser.fullName)
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError.message)
+      }
 
       const updatedUser = await this.getSanitizedUser(existingUser._id)
 
@@ -121,12 +138,21 @@ class AuthService {
     const user = await authRepository.createUser(userData)
 
     const otp = userUtils.generateOTP()
+    console.log(otp);
+    
     const hashedOTP = await userUtils.hashOTP(otp)
 
     user.emailOTP = hashedOTP
     user.emailOTPExpiry = userUtils.getOTPExpiryTime()
 
     await authRepository.saveUser(user, { validateBeforeSave: false })
+
+    // Send verification email
+    try {
+      await sendVerificationEmail(user.email, otp, user.fullName)
+    } catch (emailError) {
+      console.error("Failed to send verification email:", emailError.message)
+    }
 
     const createdUser = await this.getSanitizedUser(user._id)
 
@@ -158,8 +184,6 @@ class AuthService {
     user.isEmailVerified = true
     user.emailOTP = undefined
     user.emailOTPExpiry = undefined
-    user.emailVerificationToken = undefined
-    user.emailVerificationTokenExpiry = undefined
 
     await authRepository.saveUser(user, { validateBeforeSave: false })
 
@@ -177,7 +201,26 @@ class AuthService {
     }
 
     if (!user.isEmailVerified) {
-      throw new Error("Please verify your email first. Check inbox or resend OTP")
+      // Check if OTP is expired and auto-resend
+      if (!user.emailOTPExpiry || user.emailOTPExpiry < Date.now()) {
+        const plainOTP = userUtils.generateOTP()
+        const hashedOTP = await userUtils.hashOTP(plainOTP)
+
+        user.emailOTP = hashedOTP
+        user.emailOTPExpiry = userUtils.getOTPExpiryTime()
+        await authRepository.saveUser(user, { validateBeforeSave: false })
+
+        // Send new OTP email via Brevo
+        try {
+          await sendVerificationEmail(user.email, plainOTP, user.fullName)
+        } catch (emailError) {
+          console.error("Failed to resend OTP email:", emailError.message)
+        }
+
+        throw new Error("Email not verified. New OTP sent to your email. Please verify before logging in.")
+      }
+
+      throw new Error("Email not verified. Please check your email for OTP or request a new one.")
     }
 
     const isPasswordValid = await user.isPasswordCorrect(password)
@@ -192,33 +235,43 @@ class AuthService {
     return { user: sanitizedUser, accessToken, refreshToken }
   }
 
-  /**
-   * Resend verification OTP
-   */
-  async resendVerificationService(email) {
-    const user = await authRepository.findUserByEmail(email)
-    if (!user) {
-      throw new Error("User not found")
-    }
+/**
+    * Resend verification OTP
+    */
+   /**
+    * Resend verification OTP
+    */
+   async resendVerificationService(email) {
+     const user = await authRepository.findUserByEmail(email);
+     if (!user) {
+       throw new ApiError(404, "User not found");
+     }
 
-    if (user.isEmailVerified) {
-      throw new Error("User already verified")
-    }
+     if (user.isEmailVerified) {
+       throw new ApiError(400, "User already verified");
+     }
 
-    const plainOTP = userUtils.generateOTP()
-    const hashedOTP = await userUtils.hashOTP(plainOTP)
+     const plainOTP = userUtils.generateOTP();
+     console.log("OTP:",plainOTP);
+     
+     const hashedOTP = await userUtils.hashOTP(plainOTP);
 
-    const tokenData = user.generateTemporaryToken()
+     user.emailOTP = hashedOTP;
+     user.emailOTPExpiry = userUtils.getOTPExpiryTime();
 
-    user.emailOTP = hashedOTP
-    user.emailOTPExpiry = userUtils.getOTPExpiryTime()
-    user.emailVerificationToken = tokenData.hashedToken
-    user.emailVerificationTokenExpiry = tokenData.tokenExpiry
+     await authRepository.saveUser(user, { validateBeforeSave: false });
 
-    await authRepository.saveUser(user, { validateBeforeSave: false })
+     // Send verification email via Brevo
+     try {
+       await sendVerificationEmail(user.email, plainOTP, user.fullName);
+     } catch (emailError) {
+       console.error("Failed to resend verification email:", emailError.message);
+       // Optionally: still return OTP in dev mode, or throw if email is critical
+       // throw new ApiError(500, "Failed to send verification email");
+     }
 
-    return { otp: plainOTP, token: tokenData.unHashedToken, fullName: user.fullName, email: user.email }
-  }
+     return { otp: plainOTP, fullName: user.fullName, email: user.email };
+   }
 
   /**
    * Logout user
@@ -250,44 +303,57 @@ class AuthService {
     if (email) {
       user = await authRepository.findUserByEmail(email)
     } else if (phone) {
-      user = await authRepository.userExistsByPhone(phone)
+      // Find user by phone specifically, assuming repository has this or use a generic filter
+      user = await authRepository.findUserByEmailOrPhone(null, phone)
     }
 
     if (!user) {
-      throw new Error("User not found")
+      // Return generic success to prevent email enumeration
+      return { message: "If an account exists, a reset code has been sent to the registered email" }
     }
 
-    // Generate reset token
-    const resetToken = userUtils.generateResetToken()
-    const hashedResetToken = await userUtils.hashToken(resetToken)
+    // Generate reset OTP
+    const resetOTP = userUtils.generateOTP()
+    const hashedOTP = await userUtils.hashOTP(resetOTP)
+    console.log("Reset OTP:", resetOTP); // Log for debugging
 
-    user.resetPasswordToken = hashedResetToken
-    user.resetPasswordTokenExpiry = userUtils.getResetTokenExpiryTime()
+    user.resetPasswordToken = hashedOTP
+    user.resetPasswordTokenExpiry = userUtils.getOTPExpiryTime() // Using 10m OTP expiry
 
     await authRepository.saveUser(user, { validateBeforeSave: false })
 
-    // TODO: Send email or SMS with reset token
-    // For now, return the token (in production, send via email/SMS)
-    console.log("Reset token:", resetToken)
+    // Send password reset email via Brevo
+    try {
+      await sendPasswordResetEmail(user.email, resetOTP, user.fullName)
+    } catch (emailError) {
+      console.error("Failed to send password reset email:", emailError.message)
+    }
 
-    return { message: "Password reset link sent to your email" }
+    return { message: "Password reset code sent to your email" }
   }
 
   /**
-   * Reset password service
-   */
-  async resetPasswordService(token, newPassword) {
-    const hashedToken = await userUtils.hashToken(token)
+  * Reset password service using OTP
+  */
+  async resetPasswordService(email, otp, newPassword) {
+    const user = await authRepository.findUserByEmail(email)
 
-    const user = await authRepository.findUserByResetToken(hashedToken)
+    if (!user) {
+      throw new Error("Invalid request")
+    }
 
-    if (!user || user.passwordResetTokenExpiry < Date.now()) {
-      throw new Error("Invalid or expired reset token")
+    if (!user.resetPasswordTokenExpiry || user.resetPasswordTokenExpiry < Date.now()) {
+      throw new Error("Reset code has expired")
+    }
+
+    const isOTPValid = await userUtils.compareOTP(otp, user.resetPasswordToken)
+    if (!isOTPValid) {
+      throw new Error("Invalid reset code")
     }
 
     user.password = newPassword
-    user.passwordResetToken = undefined
-    user.passwordResetTokenExpiry = undefined
+    user.resetPasswordToken = undefined
+    user.resetPasswordTokenExpiry = undefined
 
     await authRepository.saveUser(user)
 
@@ -295,34 +361,42 @@ class AuthService {
   }
 
   /**
-   * Verify email with token service
+   * Refresh access token using a valid refresh token
+   * Implements token rotation: new refresh token issued, old one invalidated
    */
-  async verifyEmailWithTokenService(token, email) {
-    const hashedToken = await userUtils.hashToken(token)
+  async refreshAccessTokenService(incomingRefreshToken) {
+    try {
+      // Verify the incoming refresh token
+      const decodedToken = jwt.verify(incomingRefreshToken, envConfig.refreshTokenSecret)
 
-    let user
+      // Find user by ID from token payload
+      const user = await authRepository.findUserById(decodedToken._id)
 
-    if (email) {
-      user = await authRepository.findUserByEmail(email)
-    } else {
-      user = await authRepository.findUserByVerificationToken(hashedToken)
+      if (!user) {
+        throw new Error("User not found")
+      }
+
+      // Check if the incoming token matches the stored refresh token
+      // This prevents reuse of old/rotated tokens
+      if (user.refreshToken !== incomingRefreshToken) {
+        throw new Error("Invalid refresh token")
+      }
+
+      // Generate new tokens (rotation)
+      const accessToken = user.generateAccessToken()
+      const refreshToken = user.generateRefreshToken()
+
+      // Save new refresh token to DB
+      user.refreshToken = refreshToken
+      await authRepository.saveUser(user, { validateBeforeSave: false })
+
+      return { accessToken, refreshToken }
+    } catch (error) {
+      if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
+        throw new Error("Invalid or expired refresh token")
+      }
+      throw error
     }
-
-    if (!user) {
-      throw new Error("User not found")
-    }
-
-    if (user.emailVerificationToken !== hashedToken || user.emailVerificationTokenExpiry < Date.now()) {
-      throw new Error("Invalid or expired verification token")
-    }
-
-    user.isEmailVerified = true
-    user.emailVerificationToken = undefined
-    user.emailVerificationTokenExpiry = undefined
-
-    await authRepository.saveUser(user, { validateBeforeSave: false })
-
-    return { message: "Email verified successfully" }
   }
 }
 
