@@ -39,6 +39,10 @@ class JudgingRepository {
     return await Score.findOne({ judgeId, submissionId });
   }
 
+  async findScoresByJudgeAndHackathon(judgeId, hackathonId) {
+    return await Score.find({ judgeId, hackathonId });
+  }
+
   async findScoresBySubmission(submissionId) {
     return await Score.find({ submissionId }).populate(
       "judgeId",

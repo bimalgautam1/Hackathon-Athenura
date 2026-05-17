@@ -2,7 +2,6 @@
     registration.service.js
     Contains the core business rules for registration.
     */
-    import Registration from "./registration.model.js";
 import mongoose from "mongoose";
 import registrationRepository from "./registration.repository.js";
     import teamRepository from "../teams/team.repository.js";
@@ -314,21 +313,11 @@ class RegistrationService {
     // Get all team IDs where user is an accepted member
     const teamIds = await this.registrationRepo.getTeamIdsByUser(userId);
 
-    const query = Registration.find({
-      $or: [
-        { userId },
-        { teamId: { $in: teamIds } }
-      ],
-      ...filters
-    })
-      .populate('hackathonId')
-      .populate('teamId')
-      .populate({
-        path: 'userId',
-        select: '-password -refreshToken -emailOTP -emailVerificationToken'
-      });
-
-    return await query;
+    return await this.registrationRepo.findUserRegistrationsWithDetails(
+      userId, 
+      teamIds, 
+      filters
+    );
   }
 }
 

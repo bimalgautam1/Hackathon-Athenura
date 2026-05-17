@@ -33,13 +33,7 @@ const router = Router();
 
 // Unified registration endpoint for both solo and team registration
 // Placed BEFORE the generic hackathonRoute mount to ensure it matches first
-router.post(
-  '/hackathons/:hackathonId/register',
-  verifyJWT,
-  validate(hackathonIdParamValidation, 'params'),
-  validate(registerValidation),
-  asyncHandler(registrationController.register)
-);
+
 
 // Mount all module routers under /api
 router.use('/public', publicRoute);
@@ -58,7 +52,7 @@ router.use('/registrations', registrationRoute);
 router.use('/submissions', submissionRoute);
 
 // router.use('/results', resultRoute);
-router.use('/', judgingRoute);
+router.use('/judge', judgingRoute);
 
 // Health check endpoint
 router.get('/health', (req, res) => {

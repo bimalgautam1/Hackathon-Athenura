@@ -32,20 +32,20 @@ router.route("/admin/hackathons/:hackathonId/judges/assign").post(
 );
 
 // Judge Routes
-router.route("/judge/assignments").get(
+router.route("/assignments").get(
   verifyJWT,
   restrictTo("Judge"),
   asyncHandler(judgingController.getAssignments)
 );
 
-router.route("/judge/hackathons/:hackathonId/submissions").get(
+router.route("/hackathons/:hackathonId/submissions").get(
   verifyJWT,
   restrictTo("Judge"),
   validateParams(hackathonIdParamValidation),
   asyncHandler(judgingController.getSubmissionsForJudge)
 );
 
-router.route("/judge/submissions/:submissionId/scores").post(
+router.route("/submissions/:submissionId/scores").post(
   verifyJWT,
   restrictTo("Judge"),
   validateParams(submissionIdParamValidation),
@@ -53,7 +53,7 @@ router.route("/judge/submissions/:submissionId/scores").post(
   asyncHandler(judgingController.submitScore)
 );
 
-router.route("/judge/scores/:scoreId").patch(
+router.route("/scores/:scoreId").patch(
   verifyJWT,
   restrictTo("Judge"),
   validateParams(scoreIdParamValidation),
