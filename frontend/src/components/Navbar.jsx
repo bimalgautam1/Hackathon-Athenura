@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search, Menu, X, Zap } from 'lucide-react';
 import styles from './Navbar.module.css';
 
-export default function Navbar({ onSearch }) {
+export default function Navbar({ onSearch, onNavigate, currentView }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchVal, setSearchVal] = useState('');
 
@@ -11,13 +11,18 @@ export default function Navbar({ onSearch }) {
     onSearch(e.target.value);
   };
 
+  const handleNavigate = (view) => {
+    onNavigate(view);
+    setMenuOpen(false);
+  };
+
   return (
     <nav className={styles.nav}>
       <div className={styles.inner}>
-        <a href="#" className={styles.logo}>
+        <div onClick={() => handleNavigate('home')} className={styles.logo} style={{ cursor: 'pointer' }}>
           <div className={styles.logoIcon}><Zap size={18} /></div>
           <span>HackVerse</span>
-        </a>
+        </div>
 
         <div className={styles.searchBar}>
           <Search size={16} className={styles.searchIcon} />
@@ -31,9 +36,24 @@ export default function Navbar({ onSearch }) {
         </div>
 
         <div className={styles.links}>
-          <a href="#listings" className={styles.link}>Explore</a>
-          <a href="#" className={styles.link}>Leaderboard</a>
-          <a href="#" className={styles.link}>Blog</a>
+          <button 
+            onClick={() => handleNavigate('home')} 
+            className={`${styles.link} ${currentView === 'home' ? styles.active : ''}`}
+          >
+            Home
+          </button>
+          <button 
+            onClick={() => handleNavigate('about')} 
+            className={`${styles.link} ${currentView === 'about' ? styles.active : ''}`}
+          >
+            About
+          </button>
+          <button 
+            onClick={() => handleNavigate('contact')} 
+            className={`${styles.link} ${currentView === 'contact' ? styles.active : ''}`}
+          >
+            Contact
+          </button>
           <button className={styles.btnOutline}>Log In</button>
           <button className={styles.btnPrimary}>Sign Up</button>
         </div>
@@ -45,9 +65,9 @@ export default function Navbar({ onSearch }) {
 
       {menuOpen && (
         <div className={styles.mobileMenu}>
-          <a href="#listings">Explore</a>
-          <a href="#">Leaderboard</a>
-          <a href="#">Blog</a>
+          <button onClick={() => handleNavigate('home')}>Home</button>
+          <button onClick={() => handleNavigate('about')}>About</button>
+          <button onClick={() => handleNavigate('contact')}>Contact</button>
           <button className={styles.btnPrimary}>Sign Up</button>
         </div>
       )}
