@@ -120,27 +120,13 @@ class SubmissionService {
       throw new ApiError(400, "Submission deadline has passed, cannot update")
     }
 
-    // 4. Create version snapshot BEFORE updating
-    await submissionRepository.createVersion({
-      submissionId: submission._id,
-      version: submission.version,
-      title: submission.title,
-      description: submission.description,
-      techStack: submission.techStack,
-      repoUrl: submission.repoUrl,
-      demoUrl: submission.demoUrl,
-      assets: submission.assets
-    }, { session })
-
-    // 5. Apply updates
+    // 4. Apply updates
     if (data.title) submission.title = data.title
     if (data.description) submission.description = data.description
     if (data.techStack) submission.techStack = data.techStack
     if (data.repoUrl !== undefined) submission.repoUrl = data.repoUrl
     if (data.demoUrl !== undefined) submission.demoUrl = data.demoUrl
 
-    // Maintain application-level version but sync with Mongoose __v for OCC
-    submission.version = (submission.__v || 0) + 1
     submission.status = "Submitted"
     submission.submittedAt = new Date()
 
@@ -166,26 +152,6 @@ class SubmissionService {
       throw new ApiError(404, "No submission found for this hackathon")
     }
     return submission
-  }
-
-  /**
-   * Get version history for a submission
-   */
-  async getVersions(submissionId, user) {
-    // 1. Find submission
-    const submission = await submissionRepository.findSubmissionById(submissionId)
-    if (!submission) {
-      throw new ApiError(404, "Submission not found")
-    }
-
-    // 2. Check access
-    if (!submissionPolicy.canAccessVersions(submission, user)) {
-      throw new ApiError(403, "You are not authorized to view version history")
-    }
-
-    // 3. Get versions
-    const versions = await submissionRepository.findVersionsBySubmission(submissionId)
-    return versions
   }
 }
 

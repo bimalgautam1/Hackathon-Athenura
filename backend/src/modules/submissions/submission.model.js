@@ -71,10 +71,6 @@ const submissionSchema = new mongoose.Schema(
       enum: submissionStatusEnums,
       default: submissionStatus.DRAFT
     },
-    version: {
-      type: Number,
-      default: 1
-    },
     submittedAt: {
       type: Date
     }

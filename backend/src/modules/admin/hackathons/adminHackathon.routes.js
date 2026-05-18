@@ -7,7 +7,11 @@ import asyncHandler from "../../../libs/asyncHandler.js";
 import adminHackathonController from "./adminHackathon.controller.js";
 import { verifyAdmin, verifyJWT } from "../../../middleware/auth.middleware.js";
 import { validate } from "../../registrations/registration.validation.js";
-import { listRegistrationsValidation } from "./adminHackathon.validation.js";
+import { 
+  createHackathonValidation, 
+  updateHackathonValidation, 
+  listRegistrationsValidation 
+} from "./adminHackathon.validation.js";
 
 const router = Router();
 
@@ -18,6 +22,7 @@ router.post(
   "/create-hackathon",
   verifyJWT,
   verifyAdmin,
+  validate(createHackathonValidation),
   asyncHandler(adminHackathonController.createHackathon)
 );
 
@@ -42,6 +47,7 @@ router.patch(
   "/:hackathonId",
   verifyJWT,
   verifyAdmin,
+  validate(updateHackathonValidation),
   asyncHandler(adminHackathonController.updateHackathon)
 );
 

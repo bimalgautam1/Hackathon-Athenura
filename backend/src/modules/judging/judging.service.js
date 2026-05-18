@@ -68,6 +68,15 @@ class JudgingService {
   }
 
   async getSubmissionsForJudge(hackathonId, judgeId) {
+    const hackathon = await Hackathon.findById(hackathonId);
+    if (!hackathon) {
+      throw new ApiError(404, "Hackathon not found");
+    }
+
+    if (hackathon.submissionDeadline && new Date(hackathon.submissionDeadline) > Date.now()) {
+      throw new ApiError(403, "Judging period has not started yet. Please wait until the submission deadline has passed.");
+    }
+
     const assignment = await judgingRepository.findAssignment(judgeId, hackathonId);
     if (!judgingPolicy.isAssignedJudge(assignment)) {
       throw new ApiError(403, "You are not assigned to this hackathon");
@@ -107,6 +116,15 @@ class JudgingService {
       throw new ApiError(400, "Submission does not belong to this hackathon");
     }
 
+    const hackathon = await Hackathon.findById(hackathonId);
+    if (!hackathon) {
+      throw new ApiError(404, "Hackathon not found");
+    }
+
+    if (hackathon.submissionDeadline && new Date(hackathon.submissionDeadline) > Date.now()) {
+      throw new ApiError(400, "Cannot submit scores before the submission deadline has passed");
+    }
+
     const assignment = await judgingRepository.findAssignment(judgeId, hackathonId);
     if (!judgingPolicy.isAssignedJudge(assignment)) {
       throw new ApiError(403, "You are not assigned to this hackathon");
@@ -117,7 +135,6 @@ class JudgingService {
       throw new ApiError(409, "You have already scored this submission");
     }
 
-    const hackathon = await Hackathon.findById(hackathonId);
     const judgingCriteria = hackathon.judgingCriteria || [];
 
     // Validate and map scores to criteria weights

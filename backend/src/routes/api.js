@@ -25,8 +25,6 @@ import publicRoute from '../modules/public/public.routes.js';
 // import resultRoute from '../modules/results/result.routes.js';
 
 // Import controllers/validations for inline routes
-import registrationController from '../modules/registrations/registration.controller.js';
-import { validate, registerValidation, hackathonIdParamValidation } from '../modules/registrations/registration.validation.js';
 import { verifyJWT } from '../middleware/auth.middleware.js';
 
 const router = Router();

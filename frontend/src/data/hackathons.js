@@ -19,6 +19,8 @@ export const hackathons = [
     tags: ["AI", "Climate", "ML"],
     description:
       "Join the world's leading ocean conservation hackathon. Use cutting-edge AI and machine learning to solve real-world challenges facing our oceans — from plastic detection to coral reef restoration. Top teams will receive funding, mentorship, and a chance to pitch to leading climate-tech VCs.",
+    problemStatement:
+      "Design an AI-powered system that can detect, classify, and measure plastic debris in real-time from satellite or drone imagery, enabling autonomous vessels to clean large ocean regions more efficiently.",
     rules: [
       "Teams of 2–5 members only",
       "All code must be original and created during the hackathon period",
@@ -120,6 +122,8 @@ export const hackathons = [
     tags: ["Health", "AI", "IoT"],
     description:
       "HealthBridge Global brought together innovators from 60+ countries to tackle healthcare accessibility. From AI diagnostics to rural telemedicine platforms, participants built tools that are already being piloted in 12 countries.",
+    problemStatement:
+      "Build a lightweight telemedicine solution for rural communities with limited internet connectivity, capable of async video consultations, AI symptom triage, and automatic prescription digitization.",
     rules: [
       "Teams of 2–4 members",
       "Solutions must address a real healthcare gap",

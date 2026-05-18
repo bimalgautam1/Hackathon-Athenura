@@ -7,7 +7,7 @@ export const hackathonModeEnums = Object.values(hackathonMode)
 
 export const hackathonCurrencyType = {
   INR : "INR",
-  DOLLER : "DOLLER"
+  DOLLAR : "DOLLAR"
 }
 
 export const hackathonCurrencyTypeEnums = Object.values(hackathonCurrencyType)

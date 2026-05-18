@@ -58,30 +58,14 @@ class AssetService {
       throw new ApiError(400, `Cannot exceed maximum of ${MAX_ASSETS_PER_SUBMISSION} assets per submission`);
     }
 
-    // 5. We update version when assets are added as this is a modification to the submission
-    // Create snapshot BEFORE mutating
-    const versionPromise = submissionRepository.createVersion({
-      submissionId: submission._id,
-      version: submission.version,
-      title: submission.title,
-      description: submission.description,
-      techStack: submission.techStack,
-      repoUrl: submission.repoUrl,
-      demoUrl: submission.demoUrl,
-      assets: submission.assets
-    }, { session });
-
-    // 6. Append assets and save
+    // 5. Append assets
     submission.assets.push(...newAssets);
 
-    submission.version = (submission.__v || 0) + 1;
     submission.status = "Submitted";
     submission.submittedAt = new Date();
 
-    await Promise.all([
-      versionPromise,
-      submissionRepository.saveSubmission(submission, { validateBeforeSave: true, session })
-    ]);
+    // 6. Save updates
+    await submissionRepository.saveSubmission(submission, { validateBeforeSave: true, session });
 
     await session.commitTransaction();
     return submission;
