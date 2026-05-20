@@ -40,4 +40,7 @@ const paymentSchema = new Schema(
   { timestamps: true }
 );
 
+paymentSchema.index({ status: 1 });
+paymentSchema.index({ createdAt: 1 });
+
 export const Payment = mongoose.model("Payment", paymentSchema);

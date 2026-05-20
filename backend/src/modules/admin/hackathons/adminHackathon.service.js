@@ -453,6 +453,18 @@ const syncHackathonStatuses = async () => {
     endDate: { $gt: now }
   });
 
+  // 1b. ongoing -> judging: When the submission deadline has passed but the endDate
+  //     has not, the hackathon moves into the judging phase.
+  const toJudging = await Hackathon.updateMany(
+    {
+      status: 'ongoing',
+      submissionDeadline: { $lte: now },
+      endDate: { $gt: now },
+      resultsPublished: false
+    },
+    { $set: { status: 'judging' } }
+  );
+
   let transitionedToOngoing = 0;
 
   for (const hackathon of hackathonsToStart) {
@@ -561,7 +573,7 @@ const syncHackathonStatuses = async () => {
   // 2. upcoming/ongoing -> past: Bulk transition when end date has passed.
   const endedResult = await Hackathon.updateMany(
     {
-      status: { $in: ['upcoming', 'ongoing'] },
+      status: { $in: ['upcoming', 'ongoing', 'judging'] },
       endDate: { $lte: now }
     },
     { $set: { status: 'past' } }
