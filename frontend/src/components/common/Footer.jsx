@@ -257,7 +257,7 @@ export default function Footer() {
               margin: 0,
             }}
           >
-            © 2025 HackVerse. All rights reserved.
+            © 2025 Hackathon-Athenura. All rights reserved.
           </p>
           {/* Status pill */}
           <div
