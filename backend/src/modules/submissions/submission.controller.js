@@ -51,19 +51,6 @@ class SubmissionController {
       .json(new ApiResponse(200, submission, "Submission fetched successfully"))
   }
 
-  async getVersions(req, res) {
-    const { submissionId } = req.params
-
-    const versions = await submissionService.getVersions(
-      submissionId,
-      req.user
-    )
-
-    return res
-      .status(200)
-      .json(new ApiResponse(200, versions, "Versions fetched successfully"))
-  }
-
   async uploadAssets(req, res) {
     const { submissionId } = req.params
 

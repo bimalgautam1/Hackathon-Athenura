@@ -10,6 +10,8 @@ import helmet from "helmet";
 import errorHandler from "./middleware/errorHandler.js";
 import router from "./routes/api.js";
 import cookieParser from 'cookie-parser'
+import nodeCron from "node-cron";
+import { syncHackathonStatuses } from "./modules/admin/hackathons/adminHackathon.service.js";
 
 
 
@@ -31,6 +33,21 @@ app.use(
     credentials: true,
   }),
 );
+
+export const runHackathonStatusSync = async () => {
+  try {
+    const result = await syncHackathonStatuses();
+    console.log("Hackathon status sync completed:", result);
+  } catch (error) {
+    console.error("Error during hackathon status sync:", error);
+  }
+};
+
+// Schedule the task to run every minute for real-time status updates
+nodeCron.schedule("* * * * *", runHackathonStatusSync);
+
+// Run once on startup to sync any statuses missed during downtime
+runHackathonStatusSync();
 
 // API routes
 app.use("/api/v1", router);

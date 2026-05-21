@@ -8,9 +8,22 @@ import { Router } from "express";
 import registrationController from "./registration.controller.js";
 import { verifyJWT } from "../../middleware/auth.middleware.js";
 import asyncHandler from "../../libs/asyncHandler.js";
-import { validate, cancelRegistrationValidation } from "./registration.validation.js";
+import { 
+  validate, 
+  cancelRegistrationValidation, 
+  registerValidation, 
+  hackathonIdParamValidation 
+} from "./registration.validation.js";
 
 const router = Router();
+
+router.post(
+  '/:hackathonId/register',
+  verifyJWT,
+  validate(hackathonIdParamValidation, 'params'),
+  validate(registerValidation),
+  asyncHandler(registrationController.register)
+);
 
 // Get current user's registrations
 router.get(

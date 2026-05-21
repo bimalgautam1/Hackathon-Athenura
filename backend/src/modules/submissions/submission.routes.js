@@ -43,14 +43,6 @@ router.route("/:submissionId")
     asyncHandler(submissionController.updateSubmission)
   )
 
-// GET /api/v1/submissions/:submissionId/versions — Get version history
-router.route("/:submissionId/versions")
-  .get(
-    verifyJWT,
-    validateParams(submissionIdParamValidation),
-    asyncHandler(submissionController.getVersions)
-  )
-
 // POST /api/v1/submissions/:submissionId/assets — Upload assets
 router.route("/:submissionId/assets")
   .post(

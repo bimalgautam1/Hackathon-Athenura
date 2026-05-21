@@ -8,15 +8,17 @@ class RegistrationRepository {
   /**
    * Create a new registration
    */
-  async create(registrationData) {
-    return await Registration.create(registrationData);
+  async create(registrationData, options = {}) {
+    // Using array for .create is required when passing a session/options
+    const [registration] = await Registration.create([registrationData], options);
+    return registration;
   }
 
   /**
    * Find registration by ID
    */
-  async findById(registrationId, populateFields = []) {
-    let query = Registration.findById(registrationId);
+  async findById(registrationId, populateFields = [], options = {}) {
+    let query = Registration.findById(registrationId, null, options);
     populateFields.forEach(field => {
       query = query.populate(field);
     });
@@ -83,25 +85,25 @@ class RegistrationRepository {
   /**
    * Find all registrations for a user
    */
-  async findByUser(userId) {
-    return await Registration.find({ userId });
+  async findByUser(userId, filters = {}) {
+    return await Registration.find({ userId, ...filters });
   }
 
   /**
    * Update registration status and related fields
    */
-  async update(registrationId, updateData) {
+  async update(registrationId, updateData, options = {}) {
     return await Registration.findByIdAndUpdate(
       registrationId,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true, ...options }
     );
   }
 
   /**
    * Update status to cancelled
    */
-  async cancel(registrationId, reason) {
+  async cancel(registrationId, reason, options = {}) {
     return await Registration.findByIdAndUpdate(
       registrationId,
       {
@@ -109,14 +111,14 @@ class RegistrationRepository {
         cancellationReason: reason,
         cancelledAt: new Date()
       },
-      { new: true }
+      { new: true, ...options }
     );
   }
 
   /**
    * Confirm registration after payment
    */
-  async confirm(registrationId) {
+  async confirm(registrationId, options = {}) {
     return await Registration.findByIdAndUpdate(
       registrationId,
       {
@@ -125,22 +127,41 @@ class RegistrationRepository {
         paymentCompletedAt: new Date(),
         confirmedAt: new Date()
       },
-      { new: true }
+      { new: true, ...options }
     );
   }
 
   /**
    * Mark payment as failed
    */
-  async markPaymentFailed(registrationId) {
+  async markPaymentFailed(registrationId, options = {}) {
     return await Registration.findByIdAndUpdate(
       registrationId,
       {
         status: "payment_failed",
         paymentStatus: "failed"
       },
-      { new: true }
+      { new: true, ...options }
     );
+  }
+
+  /**
+   * Get registrations for a user with specific populations and filters
+   */
+  async findUserRegistrationsWithDetails(userId, teamIds, filters = {}) {
+    return await Registration.find({
+      $or: [
+        { userId },
+        { teamId: { $in: teamIds } }
+      ],
+      ...filters
+    })
+      .populate('hackathonId')
+      .populate('teamId')
+      .populate({
+        path: 'userId',
+        select: '-password -refreshToken -emailOTP -emailVerificationToken'
+      });
   }
 }
 

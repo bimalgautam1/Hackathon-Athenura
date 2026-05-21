@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Hackathon Details</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+        }
+        .content h2 {
+            color: #007bff;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 30px;
+        }
+        .content p {
+            margin: 8px 0;
+        }
+        .info-card {
+            background: #f9f9f9;
+            border-left: 4px solid #007bff;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info-card strong {
+            display: block;
+            color: #2c3e50;
+        }
+        .rule-item {
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .rule-item:last-child {
+            border-bottom: none;
+        }
+        .criteria-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .criteria-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .criteria-name {
+            flex: 1;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .criteria-weight {
+            background: #007bff;
+            color: white;
+            padding: 3px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 28px;
+            background-color: #007bff;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #bdc3c7;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Hackathon Details</h1>
+        </div>
+
+        <div class="content">
+            <p>Hello <strong><%= fullName %></strong>,</p>
+            <p>Great news! We are excited to share the complete details of <strong><%= hackathonTitle %></strong> with you. The hackathon is now live — good luck!</p>
+
+            <div class="info-card">
+                <strong>Theme</strong>
+                <p><%= problemStatement %></p>
+            </div>
+
+            <div class="info-card">
+                <strong>Schedule</strong>
+                <p><strong>Start Date:</strong> <%= new Date(startDate).toLocaleDateString() %></p>
+                <p><strong>End Date:</strong> <%= new Date(endDate).toLocaleDateString() %></p>
+                <p><strong>Submission Deadline:</strong> <%= new Date(submissionDeadline).toLocaleDateString() %></p>
+            </div>
+
+            <% if (rules && rules.length) { %>
+            <h2>Rules</h2>
+            <% rules.forEach(function(rule, index) { %>
+            <div class="rule-item"><strong>Rule <%= index + 1 %>:</strong> <%= rule %></div>
+            <% }); %>
+            <% } %>
+
+            <% if (judgingCriteria && judgingCriteria.length) { %>
+            <h2>Judging Criteria</h2>
+            <ul class="criteria-list">
+                <% judgingCriteria.forEach(function(criterion) { %>
+                <li class="criteria-item">
+                    <span class="criteria-name"><%= criterion.name %></span>
+                    <span class="criteria-weight"><%= criterion.weight %>%</span>
+                </li>
+                <% }); %>
+            </ul>
+            <% } %>
+
+            <p style="margin-top: 30px;">We have attached the official hackathon details PDF to this email. Please review it carefully before you begin.</p>
+
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="<%= hackathonLink %>" class="btn">View Hackathon Details</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>&copy; <%= new Date().getFullYear() %> Athenura Hackathon Platform. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -71,10 +71,6 @@ const submissionSchema = new mongoose.Schema(
       enum: submissionStatusEnums,
       default: submissionStatus.DRAFT
     },
-    version: {
-      type: Number,
-      default: 1
-    },
     submittedAt: {
       type: Date
     }
@@ -87,6 +83,7 @@ const submissionSchema = new mongoose.Schema(
 // One submission per user per hackathon
 submissionSchema.index({ hackathonId: 1, userId: 1 }, { unique: true })
 submissionSchema.index({ hackathonId: 1, teamId: 1 })
+submissionSchema.index({ createdAt: 1 })
 
 const Submission = mongoose.model("Submission", submissionSchema)
 export default Submission

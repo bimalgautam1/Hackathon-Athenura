@@ -7,6 +7,12 @@ const hackathonSchema = new mongoose.Schema({
     type:String,
     required:true
   },
+   problemStatement:{
+    type:String,
+    required:[true, "Hackathon  problemStatement is required"],
+    trim:true,
+    maxlength:[2000, "Problem statement cannot exceed 2000 characters"]
+  },
   slug:{
     type:String,
     required:true
@@ -17,7 +23,8 @@ const hackathonSchema = new mongoose.Schema({
   },
   mode:{
     type:[String],
-    enum:["Solo","Both"]
+    enum:["Solo","Team"],
+    required:[true, "Hackathon mode is required"],
   },
   allowedModes:{
     type:[String],
@@ -45,7 +52,8 @@ const hackathonSchema = new mongoose.Schema({
   },
   registrationFee:{
     type:Number,
-    required:true
+    required:true,
+    min: 0
   },
   currency:{
     type:String,
@@ -89,6 +97,12 @@ const hackathonSchema = new mongoose.Schema({
     required:true,
     default: { studentOnly: true, allowedGraduationYears: [] }
   },
+  status: {
+    type: String,
+    enum: ["draft", "upcoming", "ongoing", "judging", "past"],
+    default: "draft",
+    required: true
+  },
   sponsors:{
     type:[
       {
@@ -106,7 +120,17 @@ const hackathonSchema = new mongoose.Schema({
   resultsPublished: {
     type: Boolean,
     default: false
+  },
+  publishStatus: {
+    type: String,
+    enum: ['not_started', 'db_committed', 'side_effects_complete'],
+    default: 'not_started'
+  },
+  isLocked: {
+    type: Boolean,
+    default: false
   }
+
 
 },{
   timestamps:true

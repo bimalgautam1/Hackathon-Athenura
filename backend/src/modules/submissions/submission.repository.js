@@ -3,7 +3,6 @@
   Encapsulates database reads/writes for submission so query logic stays out of controllers and services.
  */
 import Submission from "./submission.model.js"
-import SubmissionVersion from "./submissionVersion.model.js"
 
 class SubmissionRepository {
 
@@ -34,14 +33,6 @@ class SubmissionRepository {
 
   async saveSubmission(submission, options = {}) {
     return await submission.save(options)
-  }
-
-  async createVersion(data) {
-    return await SubmissionVersion.create(data)
-  }
-
-  async findVersionsBySubmission(submissionId) {
-    return await SubmissionVersion.find({ submissionId }).sort({ version: -1 })
   }
 }
 

@@ -161,7 +161,56 @@ const emailTemplates = {
         <p>Thank you for participating. We hope to see you at future events!</p>
       </div>
     `
-  })
+  }),
+
+  [EMAIL_TYPES.HACKATHON_DETAILS]: ({ fullName, hackathonTitle, problemStatement, startDate, endDate, submissionDeadline, rules, judgingCriteria, hackathonLink }) => ({
+
+    subject: `Hackathon Details: ${hackathonTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Hello ${fullName || 'there'},</h2>
+        <p>Great news! The hackathon <strong>${hackathonTitle}</strong> has officially started. We are excited to share all the details with you — good luck!</p>
+
+        <div style="background-color: #f4f4f4; padding: 20px; margin: 20px 0; border-left: 4px solid #007bff;">
+          <h3 style="margin-top: 0; color: #007bff;">Theme</h3>
+          <p style="font-size: 16px;"><strong>${problemStatement}</strong></p>
+        </div>
+
+        <div style="background-color: #f9f9f9; padding: 20px; margin: 20px 0; border-left: 4px solid #28a745;">
+          <h3 style="margin-top: 0; color: #28a745;">Schedule</h3>
+          <p><strong>Start Date:</strong> ${new Date(startDate).toLocaleDateString()}</p>
+          <p><strong>End Date:</strong> ${new Date(endDate).toLocaleDateString()}</p>
+          <p><strong>Submission Deadline:</strong> ${new Date(submissionDeadline).toLocaleDateString()}</p>
+        </div>
+
+        ${rules && rules.length ? `
+        <div style="background-color: #fff8e1; padding: 20px; margin: 20px 0; border-left: 4px solid #ffc107;">
+          <h3 style="margin-top: 0; color: #f39c12;">Rules</h3>
+          ${rules.map((rule, i) => `<p style="margin: 4px 0;">${i + 1}. ${rule}</p>`).join('')}
+        </div>
+        ` : ''}
+
+        ${judgingCriteria && judgingCriteria.length ? `
+        <div style="background-color: #eafaf1; padding: 20px; margin: 20px 0; border-left: 4px solid #27ae60;">
+          <h3 style="margin-top: 0; color: #27ae60;">Judging Criteria</h3>
+          ${judgingCriteria.map(c => `<p style="margin: 4px 0;"><strong>${c.name}</strong> — ${c.weight}%</p>`).join('')}
+        </div>
+        ` : ''}
+
+        <p style="margin-top: 20px;">We have attached the official hackathon details PDF to this email. Please review it carefully before you begin.</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${envConfig.clientUrl || 'http://localhost:5173'}${hackathonLink}"
+             style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            View Hackathon Details
+          </a>
+        </div>
+      </div>
+    `
+  }),
+
+  // Map HACKATHON_STARTED to the same template logic as HACKATHON_DETAILS
+  [EMAIL_TYPES.HACKATHON_STARTED]: (data) => emailTemplatesEMAIL_TYPES.HACKATHON_DETAILS
 }
 
 /**
@@ -170,12 +219,14 @@ const emailTemplates = {
  * @param {string} to - Recipient email address
  * @param {string} type - Email type from EMAIL_TYPES
  * @param {object} data - Data to populate the template
+ * @param {Array} [attachment] - Optional array of PDF attachments [{name, content: base64String}]
  * @returns {Promise<object>} Result with success status and messageId
  */
-async function sendEmail(to, type, data = {}) {
-  // Validate email type
-  if (!Object.values(EMAIL_TYPES).includes(type)) {
-    throw new Error(`Invalid email type: ${type}`)
+async function sendEmail(to, type, data = {}, attachment = null) {
+  // Validate email type — EMAIL_TYPES already contains all registered types.
+  const validTypes = Object.values(EMAIL_TYPES);
+  if (!validTypes.includes(type)) {
+    throw new Error(`Invalid email type: ${type}`);
   }
 
   // Get template or use a default fallback
@@ -190,7 +241,7 @@ async function sendEmail(to, type, data = {}) {
   const senderEmail = envConfig.brevoSenderEmail || 'noreply@hackathon-platform.com'
   const senderName = 'Hackathon Platform'
 
-  const emailData = {
+   const emailData = {
     sender: {
       name: senderName,
       email: senderEmail
@@ -198,6 +249,22 @@ async function sendEmail(to, type, data = {}) {
     to: [{ email: to }],
     subject: subject,
     htmlContent: html
+  }
+
+  if (attachment) {
+    // Support both a single attachment object and an array of attachments
+    const attachments = Array.isArray(attachment) ? attachment : [attachment];
+    // Only include objects that have both a name and content property
+    emailData.attachment = attachments.filter(a => a && a.name && a.content).map(a => ({
+      name: a.name,
+      content: a.content,
+      // Brevo accepts contentType as well; default to application/pdf
+      contentType: a.contentType || 'application/pdf'
+    }));
+  }
+
+  if (emailData.attachment && emailData.attachment.length === 0) {
+    delete emailData.attachment;
   }
 
   try {

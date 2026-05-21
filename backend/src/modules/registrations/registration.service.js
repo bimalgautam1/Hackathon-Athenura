@@ -2,7 +2,6 @@
     registration.service.js
     Contains the core business rules for registration.
     */
-    import Registration from "./registration.model.js";
 import mongoose from "mongoose";
 import registrationRepository from "./registration.repository.js";
     import teamRepository from "../teams/team.repository.js";
@@ -11,6 +10,7 @@ import registrationRepository from "./registration.repository.js";
     import Hackathon from "../admin/hackathons/hackathon.model.js";
     import ApiError from "../../libs/apiError.js";
     import { sendEmail, EMAIL_TYPES } from "../notifications/notification.mailer.js";
+import Registration from "./registration.model.js";
 
 class RegistrationService {
 
@@ -44,6 +44,12 @@ class RegistrationService {
     // only the registration deadline matters
     if (new Date() > new Date(hackathon.registrationDeadline)) {
       throw new ApiError(422, "Registration deadline has passed. Cannot register for this hackathon.");
+    }
+
+    // Check if the user is already registered for this hackathon (solo or as part of a team)
+    const existingRegistration = await this.registrationRepo.hasUserRegisteredForHackathon(hackathonId, callerId);
+    if (existingRegistration) {
+      throw new ApiError(409, "You are already registered for this hackathon.");
     }
 
     // Mode allowed? (handles "both" as wildcard)
@@ -314,21 +320,11 @@ class RegistrationService {
     // Get all team IDs where user is an accepted member
     const teamIds = await this.registrationRepo.getTeamIdsByUser(userId);
 
-    const query = Registration.find({
-      $or: [
-        { userId },
-        { teamId: { $in: teamIds } }
-      ],
-      ...filters
-    })
-      .populate('hackathonId')
-      .populate('teamId')
-      .populate({
-        path: 'userId',
-        select: '-password -refreshToken -emailOTP -emailVerificationToken'
-      });
-
-    return await query;
+    return await this.registrationRepo.findUserRegistrationsWithDetails(
+      userId, 
+      teamIds, 
+      filters
+    );
   }
 }
 

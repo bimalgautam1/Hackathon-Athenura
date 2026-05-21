@@ -26,7 +26,9 @@ const EMAIL_TYPES = {
   
   // General
   HACKATHON_REMINDER: 'hackathon_reminder',
-  RESULTS_PUBLISHED: 'results_published'
+  RESULTS_PUBLISHED: 'results_published',
+  HACKATHON_STARTED: 'HACKATHON_STARTED',
+  HACKATHON_DETAILS: 'HACKATHON_DETAILS',
 }
 
 // All email type values as an array for validation
