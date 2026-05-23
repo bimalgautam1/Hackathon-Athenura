@@ -38,6 +38,7 @@ const createHackathonValidation = Joi.object({
       logoUrl: Joi.string().uri().optional()
     })
   ).optional(),
+  detailsPdfUrl: Joi.string().uri().allow(null, '').optional(),
 });
 
 const updateHackathonValidation = Joi.object({
@@ -78,6 +79,7 @@ const updateHackathonValidation = Joi.object({
       logoUrl: Joi.string().uri().optional()
     })
   ),
+  detailsPdfUrl: Joi.string().uri().allow(null, '').optional(),
 });
 
 /**

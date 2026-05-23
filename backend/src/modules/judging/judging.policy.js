@@ -10,11 +10,9 @@ class JudgingPolicy {
   }
 
   isAssignedJudge(assignment) {
-    // Guard against null — findAssignment() returns null when the record does not exist.
-    // Without the null check, accessing 'assignment.assigned' would throw a TypeError
-    // and bubble up as a 500 instead of returning a clean 403.
-    if (!assignment) return false;
-    return !!assignment.assigned;
+    // If an assignment record exists, the judge is assigned.
+    // The model does not have a boolean 'assigned' field; existence of the record is the check.
+    return !!assignment;
   }
 }
 

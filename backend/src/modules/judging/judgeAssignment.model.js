@@ -20,6 +20,10 @@ const judgeAssignmentSchema = new mongoose.Schema(
     assignedAt: {
       type: Date,
       default: Date.now
+    },
+    assigned: {
+      type: Boolean,
+      default: true
     }
   },
   {

@@ -530,7 +530,8 @@ const syncHackathonStatuses = async () => {
               submissionDeadline: hackathon.submissionDeadline,
               rules: hackathon.rules || [],
               judgingCriteria: hackathon.judgingCriteria || [],
-              hackathonLink: `/hackathons/${hackathon.slug}`
+              hackathonLink: `/hackathons/${hackathon.slug}`,
+              detailsPdfUrl: hackathon.detailsPdfUrl || null
             });
             notifiedEmails.add(participant.email);
           } catch (emailError) {
@@ -557,7 +558,8 @@ const syncHackathonStatuses = async () => {
                 submissionDeadline: hackathon.submissionDeadline,
                 rules: hackathon.rules || [],
                 judgingCriteria: hackathon.judgingCriteria || [],
-                hackathonLink: `/hackathons/${hackathon.slug}`
+                hackathonLink: `/hackathons/${hackathon.slug}`,
+                detailsPdfUrl: hackathon.detailsPdfUrl || null
               });
               notifiedEmails.add(memberEmail);
             } catch (emailError) {

@@ -1,10 +1,15 @@
 /**
-  index.js
-  Main Socket.IO entry point.
-  Listens for connection events and delegates to the publishers.
-  Import and call `initSockets(io)` from server.js after the IO instance is created.
+ * index.js
+ * Main Socket.IO entry point.
+ * Performs JWT authorization during connection handshakes and registers modular domain handlers.
  */
-import { SOCKET_EVENTS } from './events.js';
+import jwt from 'jsonwebtoken';
+import envConfig from '../config/envConfig.js';
+// Placeholder handlers are not imported yet because they don't have default exports.
+// Once implemented, they can be imported and registered here.
+import registerNotificationHandler from './handlers/notification.handler.js';
+import registerHackathonRoom from './rooms/hackathon.room.js';
+import registerUserRoom from './rooms/user.room.js';
 
 /**
  * Registers all socket event listeners on the provided io instance.
@@ -17,30 +22,42 @@ export const initSockets = (io) => {
     return;
   }
 
-  // ── Connection ────────────────────────────────────────────────────
+  // ── Connection Authentication Handshake Middleware ─────────────────
+  io.use((socket, next) => {
+    try {
+      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
+      if (!token) {
+        return next(new Error('Authentication error: Token required'));
+      }
+
+      const decoded = jwt.verify(token, envConfig.accessTokenSecret);
+      socket.user = decoded; // Bind verified token context to socket state
+      next();
+    } catch (err) {
+      console.error(`[Socket Auth Failure] Client connection rejected: ${err.message}`);
+      return next(new Error('Authentication error: Invalid access token'));
+    }
+  });
+
+  // ── Connection Listener ────────────────────────────────────────────
   io.on('connection', (socket) => {
-    console.log(`[Socket] Client connected: ${socket.id}`);
+    console.log(`[Socket] Secure connection established: ${socket.id} (User ID: ${socket.user._id}, Role: ${socket.user.role})`);
 
-    // Default room: every client joins their own user room
-    socket.on('join-hackathon', (hackathonId) => {
-      const room = `hackathon:${hackathonId}`;
-      socket.join(room);
-      console.log(`[Socket] Socket ${socket.id} joined room ${room}`);
-      socket.emit(SOCKET_EVENTS.SERVER.PROGRESS_UPDATE, {
-        message: `Joined room for hackathon ${hackathonId}`,
-        hackathonId
-      });
-    });
+    // Register modular room setups
+    registerUserRoom(io, socket);
+    registerHackathonRoom(io, socket);
+    // registerJudgeRoom(io, socket); // Unused currently
 
-    socket.on('leave-hackathon', (hackathonId) => {
-      const room = `hackathon:${hackathonId}`;
-      socket.leave(room);
-      console.log(`[Socket] Socket ${socket.id} left room ${room}`);
-    });
+    // Register Modular Subsystem Handlers
+    registerNotificationHandler(io, socket);
+    // registerLeaderboardHandler(io, socket);
+    // registerResultsHandler(io, socket);
+    // registerTeamHandler(io, socket);
 
-    // Disconnect log
+    // Detailed Disconnect Cleanup and Memory Diagnostics Logging
     socket.on('disconnect', (reason) => {
-      console.log(`[Socket] Client disconnected: ${socket.id} — reason: ${reason}`);
+      console.log(`[Socket] Client disconnected: ${socket.id} — reason: ${reason} — User ID: ${socket.user._id}`);
+      // Socket.IO automatically purges socket room memberships on disconnect
     });
   });
 

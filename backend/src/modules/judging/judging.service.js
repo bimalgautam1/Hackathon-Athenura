@@ -16,6 +16,10 @@ import ApiError from "../../libs/apiError.js";
 import { aggregateScoresForSubmission, aggregateScoresForHackathon } from '../results/aggregation.service.js';
 import { userRoles } from "../users/user.constants.js";
 import { scoreStatus } from "./judging.constants.js";
+import {
+  emitScoreSubmitted,
+  emitScoreUpdated
+} from '../../sockets/publisher/socket.publisher.js';
 
 class JudgingService {
   async getAllJudges() {
@@ -36,7 +40,8 @@ class JudgingService {
     const assignments = judgeIds.map((id) => ({
       judgeId: id,
       hackathonId,
-      assignedBy: adminId
+      assignedBy: adminId,
+      assigned: true
     }));
 
     const existingPairs = await JudgeAssignment.find({
@@ -156,18 +161,36 @@ class JudgingService {
     });
 
     // Add to AdminReviewQueue — requires admin approval before the score
-    // can be used in aggregation/rankings
-    await AdminReviewQueue.create({
-      hackathonId: new mongoose.Types.ObjectId(hackathonId),
-      submissionId: new mongoose.Types.ObjectId(submissionId),
-      judgeId: new mongoose.Types.ObjectId(judgeId),
-      scoreId: newScore._id,
-      scoreRecommendation: {
-        criterionScores,
-        totalScore: newScore.totalScore,
-        feedback: scoreData.feedback || ''
+    // can be used in aggregation/rankings.
+    // We use upsert here to safely handle any orphaned queue records left over from manual database testing.
+    await AdminReviewQueue.findOneAndUpdate(
+      { 
+        judgeId: new mongoose.Types.ObjectId(judgeId),
+        submissionId: new mongoose.Types.ObjectId(submissionId)
       },
-      status: 'pending'
+      {
+        $set: {
+          hackathonId: new mongoose.Types.ObjectId(hackathonId),
+          scoreId: newScore._id,
+          scoreRecommendation: {
+            criterionScores,
+            totalScore: newScore.totalScore,
+            feedback: scoreData.feedback || ''
+          },
+          status: 'pending'
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    // Real-time push: a judge has submitted a new score
+    emitScoreSubmitted(hackathonId, {
+      scoreId:        newScore._id.toString(),
+      judgeId:        judgeId.toString(),
+      submissionId:   submissionId.toString(),
+      totalScore:     newScore.totalScore,
+      criterionScores: criterionScores,
+      feedback:       scoreData.feedback || ''
     });
 
     return newScore;
@@ -213,21 +236,45 @@ class JudgingService {
     // Revert to 'submitted' — an update requires another round of admin review
     score.status = scoreStatus.SUBMITTED;
 
-    // Revert queue item back to pending so admin can re-review
+    const savedScore = await judgingRepository.saveScore(score);
+
+    // Revert queue item back to pending so admin can re-review, and update the recommendation
     await AdminReviewQueue.findOneAndUpdate(
-      { scoreId: score._id },
+      { scoreId: savedScore._id },
       {
         status: 'pending',
         adminComment: 'Score updated by judge — re-queued for review',
         resolvedBy: null,
-        resolvedAt: null
+        resolvedAt: null,
+        scoreRecommendation: {
+          criterionScores: savedScore.criterionScores,
+          totalScore: savedScore.totalScore,
+          feedback: savedScore.feedback || ''
+        }
       }
     );
 
-    const savedScore = await judgingRepository.saveScore(score);
-
     // Refresh submission aggregate with the (still non-approved) score
-    await aggregateScoresForSubmission(savedScore.submissionId, savedScore.hackathonId);
+    try {
+      await aggregateScoresForSubmission(savedScore.submissionId, savedScore.hackathonId);
+    } catch (e) {
+      console.error("aggregateScoresForSubmission error:", e);
+    }
+
+    const payload = {
+      scoreId:          savedScore._id.toString(),
+      judgeId:          judgeId.toString(),
+      submissionId:     savedScore.submissionId.toString(),
+      totalScore:       savedScore.totalScore,
+      criterionScores:  savedScore.criterionScores.map(c => c.toObject ? c.toObject() : c),
+      feedback:         savedScore.feedback || ''
+    };
+    
+    console.log(`[Socket Debug] Emitting SCORE_UPDATED to room: hackathon:${savedScore.hackathonId.toString()}`);
+    console.log(`[Socket Debug] Payload:`, JSON.stringify(payload));
+
+    // Real-time push: a judge has updated a score
+    emitScoreUpdated(savedScore.hackathonId.toString(), payload);
 
     return savedScore;
   }

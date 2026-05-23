@@ -17,14 +17,17 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
 
   const authHeader = req.header("Authorization")
   const token =
-    req.cookies?.accessToken ||
-    (authHeader?.startsWith("Bearer") ? authHeader.substring(6).trim() : null)
+    (authHeader?.startsWith("Bearer") ? authHeader.substring(6).trim() : null) ||
+    req.cookies?.accessToken
 
   if (!token) {
     throw new ApiError(401, "Unauthorized request")
   }
 
   const decodedToken = jwt.verify(token, envConfig.accessTokenSecret)
+  if (!decodedToken || !decodedToken._id) {
+    throw new ApiError(401, "Invalid access token")
+  }
 
   const user = await User.findById(decodedToken._id).select(
     "-password -refreshToken"
