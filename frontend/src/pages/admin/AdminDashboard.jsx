@@ -5,8 +5,7 @@ import {
 } from 'recharts';
 import {
   Users, Trophy, DollarSign, Building2, TrendingUp,
-  Search, Bell, User, ChevronDown, Check,
-  Calendar, Activity, Zap, ArrowUpRight
+  Bell, User, ChevronDown, Check,  Calendar, Activity, Zap, ArrowUpRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -426,18 +425,6 @@ const Navbar = () => (
       <p className="text-slate-500 text-xs hidden sm:block">Real-time overview of platform activity and insights</p>
     </div>
     <div className="flex items-center gap-3 justify-end">
-      <div className="relative flex-1 max-w-md hidden sm:block">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search anything..."
-          className="w-full rounded-full border border-white/60 bg-white/60 py-2.5 pl-11 pr-4 text-sm text-slate-700 placeholder:text-slate-400 outline-none ring-blue-200 backdrop-blur-xl transition focus:bg-white/90 focus:ring-2"
-        />
-      </div>
-      <button className="relative flex h-11 w-11 items-center justify-center rounded-full bg-white/60 backdrop-blur-xl border border-white/40 text-[#0b1b52] hover:bg-white/80 transition-colors">
-        <Bell className="h-5 w-5" />
-        <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-[#2563eb]" />
-      </button>
       <button type="button" className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ring-2 ring-white/80 shadow-md transition hover:ring-blue-300" aria-label="Account">
         <img src="https://i.pravatar.cc/80" alt="Account" className="h-full w-full object-cover" />
       </button>

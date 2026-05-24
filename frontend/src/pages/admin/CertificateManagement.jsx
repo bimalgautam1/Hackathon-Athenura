@@ -2,7 +2,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, Bell, User, ShieldCheck, FileText, Medal, Download,
+  Bell, User, ShieldCheck, FileText, Medal, Download,
   Eye, Pencil, Trash2, UploadCloud, Plus, Palette, Sparkles, Layers,
   Settings, Info, X, Check, AlertTriangle, QrCode, Award, Calendar,
   Filter, ChevronDown, Clock, CheckCircle2, XCircle,
@@ -282,21 +282,7 @@ export default function CertificatesDashboard() {
 
           <div className="flex-1" />
 
-          <div className="relative hidden md:block w-72 lg:w-96">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              className="w-full rounded-full border border-white/60 bg-white/60 py-2.5 pl-11 pr-10 text-sm text-slate-700 placeholder:text-slate-400 outline-none ring-blue-200 backdrop-blur-xl transition focus:bg-white/90 focus:ring-2"
-              placeholder="Search certificates..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            {search && (
-              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+         
           <div className="w-36">
             <CustomDropdown
               value={typeFilter}
@@ -304,13 +290,6 @@ export default function CertificatesDashboard() {
               options={["All", "Participation", "Rank", "Special"]}
             />
           </div>
-          <div className="relative">
-            <button className="relative p-2 rounded-xl hover:bg-white/70 transition">
-              <Bell className="w-5 h-5 text-slate-700" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500" />
-            </button>
-          </div>
-
           <button type="button" className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ring-2 ring-white/80 shadow-md transition hover:ring-blue-300" aria-label="Account">
             <img src="https://i.pravatar.cc/80" alt="Account" className="h-full w-full object-cover" />
           </button>

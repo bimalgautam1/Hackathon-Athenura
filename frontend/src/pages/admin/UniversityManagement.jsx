@@ -358,20 +358,7 @@ export function UniversityDashboard() {
             <p className="text-xs text-slate-400 mt-0.5">Create, view, edit and manage university entries.</p>
           </div>
           <div className="flex-1" />
-          <div className="hidden sm:flex relative items-center">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={globalSearch}
-              onChange={(e) => { setGlobalSearch(e.target.value); setPage(1); }}
-              placeholder="Search anything..."
-              className="h-10 w-64 lg:w-80 rounded-full bg-white/70 backdrop-blur-xl pl-10 pr-4 text-sm text-[#0b1b52] placeholder:text-slate-400 ring-1 ring-white/60 shadow-sm outline-none focus:ring-2 focus:ring-blue-300 transition"
-            />
-          </div>
-          <button type="button"
-            className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/70 backdrop-blur-xl ring-1 ring-white/60 shadow-sm hover:shadow-md transition">
-            <Bell className="h-4 w-4 text-slate-600" />
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-500 ring-2 ring-white" />
-          </button>
+        
           <img src="https://i.pravatar.cc/80" alt="avatar" className="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm" />
         </motion.div>
         <motion.section initial="hidden" animate="show"

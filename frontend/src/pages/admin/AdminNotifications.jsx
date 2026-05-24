@@ -700,15 +700,6 @@ function Navbar() {
         <p style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "2px" }}>View and manage all real-time notifications sent across the platform.</p>
       </div>
       <div style={{ flex: 1 }} />
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.6)", background: "rgba(255,255,255,0.6)", padding: "10px 16px", backdropFilter: "blur(12px)", width: "300px" }}>
-        <Search size={16} color="#94a3b8" />
-        <input placeholder="Search anything..." style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: "0.875rem", color: "#475569", fontFamily: "'Plus Jakarta Sans', sans-serif" }} />
-      </div>
-      <motion.button whileHover={{ scale: 1.05 }}
-        style={{ position: "relative", width: "40px", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "12px", background: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.6)", cursor: "pointer", color: "#475569", backdropFilter: "blur(12px)" }}>
-        <Bell size={20} />
-        <span style={{ position: "absolute", top: "8px", right: "8px", width: "8px", height: "8px", borderRadius: "50%", background: "#2563eb", outline: "2px solid white" }} />
-      </motion.button>
       <motion.button whileHover={{ scale: 1.05 }}
         style={{ width: "40px", height: "40px", overflow: "hidden", borderRadius: "9999px", border: "none", cursor: "pointer", boxShadow: "0 0 0 2px rgba(255,255,255,0.8), 0 4px 12px rgba(37,99,235,0.2)" }}>
         <img src="https://i.pravatar.cc/80" alt="Account" style={{ width: "100%", height: "100%", objectFit: "cover" }} />

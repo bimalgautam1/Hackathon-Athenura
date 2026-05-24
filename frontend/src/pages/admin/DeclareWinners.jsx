@@ -2,10 +2,10 @@
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Trophy, Users, Award, FileBadge, Globe,
-  Eye, ChevronDown, Info, CheckCircle2, Circle, Loader2,
-  FileText, Send, Medal, X, Download, Check,
-  AlertCircle, Clock, UserCheck, Printer,
-  ExternalLink, ChevronRight, ChevronUp, Bell, Search,
+Eye, ChevronDown, Info, CheckCircle2, Circle, Loader2,
+FileText, Send, Medal, X, Download, Check,
+AlertCircle, Clock, UserCheck, Printer,
+ExternalLink, ChevronRight, ChevronUp, Bell,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
@@ -802,7 +802,6 @@ export default function ResultDeclaration() {
   const [published, setPublished] = useState(false);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const resultStatus = published ? "Published" : "Draft";
 
@@ -879,23 +878,6 @@ export default function ResultDeclaration() {
             <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 1 }}>Select winners, generate certificates, and publish results.</div>
           </div>
           <div style={{ flex: 1 }} />
-          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-            <Search size={15} style={{ position: "absolute", left: 12, color: "#94a3b8", pointerEvents: "none" }} />
-            <input
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search anything..."
-              style={{
-                padding: "9px 14px 9px 34px", borderRadius: 24, border: "1.5px solid #e2e8f0",
-                background: "rgba(255,255,255,0.8)", fontSize: 13, color: "#334155",
-                outline: "none", width: 240,
-              }}
-            />
-          </div>
-          <button style={{ padding: 8, borderRadius: 10, border: "1px solid #e2e8f0", background: "rgba(255,255,255,0.8)", cursor: "pointer", position: "relative" }}>
-            <Bell size={18} color="#64748b" />
-            <span style={{ position: "absolute", top: 6, right: 6, width: 7, height: 7, borderRadius: "50%", background: "#3b82f6", border: "2px solid #fff" }} />
-          </button>
           <img src="https://i.pravatar.cc/80" alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: "2px solid #fff", boxShadow: "0 2px 8px rgba(0,0,0,0.12)" }} />
         </div>
 

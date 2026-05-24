@@ -10,7 +10,6 @@ const Icon = ({ d, size = 18, className = "" }) => (
 const Icons = {
   menu: "M3 12h18M3 6h18M3 18h18",
   search: "M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z",
-  bell: ["M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9", "M13.73 21a2 2 0 0 1-3.46 0"],
   user: ["M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2", "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"],
   users: ["M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2", "M23 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"],
   download: ["M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", "M7 10l5 5 5-5", "M12 15V3"],
@@ -105,7 +104,7 @@ function Toast({ msg, onClose }) {
   );
 }
 
-function Navbar({ searchQuery, setSearchQuery }) {
+function Navbar() {
   return (
     <motion.nav
       initial={{ opacity: 0, y: -10 }}
@@ -121,27 +120,6 @@ function Navbar({ searchQuery, setSearchQuery }) {
           </div>
         </div>
         <div className="flex-1" />
-        <div className="relative hidden md:block w-72 lg:w-96">
-          <Icon d={Icons.search} size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            className="w-full rounded-full border border-white/60 bg-white/60 py-2.5 pl-11 pr-4 text-sm text-slate-700 placeholder:text-slate-400 outline-none ring-blue-200 backdrop-blur-xl transition focus:bg-white/90 focus:ring-2"
-            placeholder="Search reports..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-              <Icon d={Icons.x} size={14} />
-            </button>
-          )}
-        </div>
-        <div className="relative">
-          <button className="relative p-2 rounded-xl hover:bg-white/70 transition">
-            <Icon d={Icons.bell} size={20} className="text-slate-700" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500" />
-          </button>
-        </div>
         <button type="button" className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ring-2 ring-white/80 shadow-md transition hover:ring-blue-300">
           <img src="https://i.pravatar.cc/80" alt="Account" className="h-full w-full object-cover" />
         </button>
@@ -473,7 +451,7 @@ export default function ReportsDashboard() {
     <div style={fontStack} className="min-h-screen bg-gradient-to-br from-[#ecfcff] via-[#f8ffff] to-[#dff7ff]">
       <div className="max-w-[1700px] mx-auto">
 
-        <Navbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+        <Navbar />
 
         <div className="px-6 lg:px-10 py-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

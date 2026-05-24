@@ -1,7 +1,8 @@
 ﻿import { useMemo, useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, Bell, Plus, FileEdit, CalendarDays, PlayCircle,
+  Search, Plus, FileEdit, CalendarDays, PlayCircle,
   CheckCircle2, TrendingUp, Pencil, Copy, Trash2, ChevronLeft,
   ChevronRight, Activity, Calendar, Globe, Users, GraduationCap,
   Trophy, Building2, FileText, Code2, Database, Zap, Hexagon,
@@ -770,9 +771,15 @@ function DetailPanel({ selected, activeTab, setActiveTab, openEdit, onUpdateSett
     </>
   );
 }
-
 export default function HackathonDashboard() {
-  const [hackathons, setHackathons] = useState(initialData);
+  const [hackathons, setHackathons] = useState(() => {
+    try {
+      const temp = JSON.parse(localStorage.getItem("tempHackathons") || "[]");
+      return [...temp, ...initialData];
+    } catch {
+      return initialData;
+    }
+  });
   const [selectedId, setSelectedId] = useState("1");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -783,6 +790,7 @@ export default function HackathonDashboard() {
   const [editOpen, setEditOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const toast = useToast();
+const navigate = useNavigate();
 
   const filtered = useMemo(() => hackathons.filter((h) => {
     const matchSearch = h.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -871,21 +879,10 @@ export default function HackathonDashboard() {
               <p className="text-slate-500 text-xs sm:text-sm hidden sm:block">Create, manage and organize hackathons.</p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="relative hidden flex-1 max-w-md sm:block">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search anything..."
-                  className="w-full rounded-full border border-white/60 bg-white/60 py-2.5 pl-11 pr-4 text-sm text-slate-700 placeholder:text-slate-400 outline-none ring-blue-200 backdrop-blur-xl transition focus:bg-white/90 focus:ring-2"
-                />
-              </div>
-              <button className="bg-white/40 backdrop-blur-sm border border-white/50 rounded-full p-2.5 sm:p-3 relative hover:scale-105 transition-transform flex-shrink-0">
-                <Bell className="w-5 h-5 text-[#0b1b52]" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full" />
-              </button>
+              
               <motion.button
                 whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}
-                onClick={() => { setCreateData({ ...emptyHackathon }); setCreateOpen(true); }}
+                onClick={() => navigate('/admin/hackathons/create')}
                 className={`${btnBlue} flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm whitespace-nowrap flex-shrink-0`}
               >
                 <Plus className="w-4 h-4" />
