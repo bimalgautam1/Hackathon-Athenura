@@ -377,7 +377,7 @@ export default function Navbar() {
               </button>
               <button
                 className="hw-btn-primary"
-                onClick={() => navigate("/Register")}
+                onClick={() => navigate("/register")}
               >
                 Sign up free
               </button>
