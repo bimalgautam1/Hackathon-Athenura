@@ -12,6 +12,7 @@ import router from "./routes/api.js";
 import cookieParser from 'cookie-parser'
 import nodeCron from "node-cron";
 import { syncHackathonStatuses } from "./modules/admin/hackathons/adminHackathon.service.js";
+import { processPendingEmails } from "./modules/notifications/notification.cron.js";
 
 
 
@@ -45,6 +46,9 @@ export const runHackathonStatusSync = async () => {
 
 // Schedule the task to run every minute for real-time status updates
 nodeCron.schedule("* * * * *", runHackathonStatusSync);
+
+// Schedule background email sending to prevent slow SMTP calls from causing server lag
+nodeCron.schedule("*/1 * * * *", processPendingEmails);
 
 // Run once on startup to sync any statuses missed during downtime
 runHackathonStatusSync();

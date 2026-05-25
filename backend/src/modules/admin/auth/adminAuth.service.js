@@ -34,22 +34,22 @@ class AdminAuthService {
     const { email, password, phone, role, adminSecretKey, judgeSecretKey, judgeId, confirmPassword } = userInputData
 
     // ── At least one role must be stated explicitly ──
-    const validRoles = ["Admin", "Judge"]
+    const validRoles = [userRoles.ADMIN, userRoles.JUDGE]
     if (!validRoles.includes(role)) {
       throw new ApiError(400, "Role must be either 'Admin' or 'Judge'")
     }
 
     // ── Validate the matching secret key ──
-    if (role === "Admin") {
+    if (role === userRoles.ADMIN) {
       if (!adminSecretKey) {
         throw new ApiError(400, "adminSecretKey is required when role is Admin")
       }
-      if (adminSecretKey !== envConfig.admineSecretKey) {
+      if (adminSecretKey !== envConfig.adminSecretKey) {
         throw new ApiError(403, "Invalid admin secret key")
       }
     }
 
-    if (role === "Judge") {
+    if (role === userRoles.JUDGE) {
       if (!judgeSecretKey || !judgeId) {
         throw new ApiError(400, "judgeSecretKey and judgeId are required when role is Judge")
       }
@@ -69,7 +69,7 @@ class AdminAuthService {
       throw new ApiError(409, "User already exists with this email")
     }
 
-    if (role === "Judge") {
+    if (role === userRoles.JUDGE) {
       const existingUserByJudgeId = await authRepository.findByJudgeId(judgeId)
       if (existingUserByJudgeId) {
         throw new ApiError(409, "Judge ID is already registered")
@@ -78,11 +78,11 @@ class AdminAuthService {
 
     // ── Build user record — fields vary by role ──
     const userData = {
-      fullName: role === "Judge" ? "Judge" : "Admin",
+      fullName: role === userRoles.JUDGE ? "Judge" : "Admin",
       email,
       password,
       phone,
-      role: role === "Admin" ? userRoles.ADMIN : userRoles.JUDGE,
+      role: role === userRoles.ADMIN ? userRoles.ADMIN : userRoles.JUDGE,
       isEmailVerified: true,
       dateOfBirth: new Date(),
       collegeOrUniversity: "N/A",
@@ -91,7 +91,7 @@ class AdminAuthService {
     };
 
     // Only attach judgeId for judge accounts
-    if (role === "Judge") {
+    if (role === userRoles.JUDGE) {
       userData.judgeId = judgeId
     }
 
@@ -126,6 +126,39 @@ class AdminAuthService {
     const sanitizedUser = await this.getSanitizedUser(user._id)
 
     return { user: sanitizedUser, accessToken, refreshToken }
+  }
+
+  // ── Forgot Password — verifies secret key and updates password ────────────
+  async forgotPasswordService(data) {
+    const { email, newPassword, role, adminSecretKey, judgeSecretKey } = data
+
+    // 1. Verify Secret Key
+    if (role === userRoles.ADMIN) {
+      if (!adminSecretKey || adminSecretKey !== envConfig.adminSecretKey) {
+        throw new ApiError(403, "Invalid admin secret key")
+      }
+    } else if (role === userRoles.JUDGE) {
+      if (!judgeSecretKey || judgeSecretKey !== envConfig.judgeSecretKey) {
+        throw new ApiError(403, "Invalid judge secret key")
+      }
+    }
+
+    // 2. Find User
+    const user = await authRepository.findUserByEmail(email)
+    if (!user) {
+      throw new ApiError(404, "User not found")
+    }
+
+    // 3. Check if user role matches the request role
+    if (user.role !== role) {
+      throw new ApiError(403, `Access denied. Specified role does not match user account.`)
+    }
+
+    // 4. Update Password
+    user.password = newPassword
+    await authRepository.saveUser(user)
+
+    return true
   }
 }
 

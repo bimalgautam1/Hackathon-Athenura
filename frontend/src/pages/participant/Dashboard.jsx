@@ -2,6 +2,7 @@
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
+
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 const mockStats = [
   { id: 1, label: "Hackathons Joined", value: 8, suffix: "" },
@@ -280,10 +281,11 @@ export default function Dashboard() {
           width: 42px; height: 42px;
           border-radius: 12px;
           border: 1.5px solid #e2e8f0;
-          background: #fff;
+          background: #03045e;
+          
           display: flex; align-items: center; justify-content: center;
           cursor: pointer;
-          color: #03045e;
+          color: #fff;
           transition: all 0.3s ease;
           box-shadow: 0 2px 8px rgba(3,4,94,0.06);
         }
@@ -879,23 +881,13 @@ export default function Dashboard() {
 
       <div className="db-wrap">
 
-        {/* ── Header ── */}
-        <div className="db-header">
-          <div>
-            <div className="db-username">{userName}</div>
-            <div className="db-date">{today}</div>
-          </div>
-          <div className="db-header-right">
-            <button className="db-notif-btn">
-              <Icons.Bell size={20} />
-              <span className="db-notif-dot" />
-            </button>
-            <button className="db-explore-btn" onClick={() => navigate("/")}>
-              <Icons.Zap size={14} />
-              Explore Hackathons
-            </button>
-          </div>
-        </div>
+    {/* ── Header ── */}
+<div className="db-header">
+  <div>
+    <div className="db-username">{userName}</div>
+    <div className="db-date">{today}</div>
+  </div>
+</div>
 
         {/* ── Stats ── */}
         <div className="db-stats">
@@ -945,12 +937,12 @@ export default function Dashboard() {
                       <Icons.CheckCircle size={12} /> Submitted
                     </button>
                   ) : (
-                    <button
-                      className="db-submit-btn db-submit-btn-primary"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/hackathon/${h.id}/submit`); }}
-                    >
-                      Submit <Icons.ArrowRight size={11} />
-                    </button>
+                   <button
+  className="db-submit-btn db-submit-btn-primary"
+  onClick={(e) => { e.stopPropagation(); navigate("/my-submissions"); }}
+>
+  Submit <Icons.ArrowRight size={11} />
+</button>
                   )}
                 </div>
               </div>

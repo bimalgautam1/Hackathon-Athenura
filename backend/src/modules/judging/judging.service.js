@@ -1,20 +1,29 @@
 /**
   judging.service.js
   Business logic for judge assignment and scoring.
+  After the blueprint refactor: submitted scores are placed in the AdminReviewQueue
+  with status 'under_review' instead of being auto-approved.
  */
-
+import mongoose from 'mongoose';
 import judgingRepository from "./judging.repository.js";
 import judgingPolicy from "./judging.policy.js";
 import Hackathon from "../admin/hackathons/hackathon.model.js";
 import JudgeAssignment from "./judgeAssignment.model.js";
 import User from "../users/user.model.js";
 import Submission from "../submissions/submission.model.js";
+import AdminReviewQueue from "../admin/results/reviewQueue.model.js";
 import ApiError from "../../libs/apiError.js";
-import { aggregateScoresForSubmission } from '../results/aggregation.service.js';
+import { aggregateScoresForSubmission, aggregateScoresForHackathon } from '../results/aggregation.service.js';
+import { userRoles } from "../users/user.constants.js";
+import { scoreStatus } from "./judging.constants.js";
+import {
+  emitScoreSubmitted,
+  emitScoreUpdated
+} from '../../sockets/publisher/socket.publisher.js';
 
 class JudgingService {
   async getAllJudges() {
-    return await User.find({ role: "Judge" }).select("fullName email _id");
+    return await User.find({ role: userRoles.JUDGE }).select("fullName email _id");
   }
 
   async assignJudges(hackathonId, judgeIds, adminId) {
@@ -23,34 +32,27 @@ class JudgingService {
       throw new ApiError(404, "Hackathon not found");
     }
 
-    const judges = await User.find({ _id: { $in: judgeIds }, role: "Judge" });
+    const judges = await User.find({ _id: { $in: judgeIds }, role: userRoles.JUDGE });
     if (judges.length !== judgeIds.length) {
       throw new ApiError(400, "One or more invalid judge IDs, or user is not a Judge");
     }
 
-    // Build the assignment documents for all provided judge IDs
     const assignments = judgeIds.map((id) => ({
       judgeId: id,
       hackathonId,
-      assignedBy: adminId
+      assignedBy: adminId,
+      assigned: true
     }));
 
-    // Pre-check: find any that already exist before inserting so we can give a stable,
-    // reliable count of previously-assigned judges regardless of the Mongoose version
-    // or the internal shape of the raw 11000 error object.
     const existingPairs = await JudgeAssignment.find({
       judgeId: { $in: judgeIds },
       hackathonId
     }).select("judgeId");
     const alreadyAssignedSet = new Set(existingPairs.map(a => a.judgeId.toString()));
 
-    // Only attempt to insert genuinely-new ones — no duplicates ever make it to
-    // insertMany, so there is nothing left for the catch-block to guess about.
     const newAssignments = assignments.filter(a => !alreadyAssignedSet.has(a.judgeId.toString()));
 
     if (newAssignments.length === 0) {
-      // Every judge was already assigned — return a clear 409 instead of
-      // silently counting on an implementation detail of Mongoose error objects.
       throw new ApiError(409, "All provided judges are already assigned to this hackathon");
     }
 
@@ -93,7 +95,6 @@ class JudgingService {
       scoredSubmissionMap.set(score.submissionId.toString(), score);
     });
 
-    // Map submissions and mark if scored
     const scoredSubmissions = [];
     for (const sub of submissions) {
       const score = scoredSubmissionMap.get(sub._id.toString());
@@ -108,18 +109,14 @@ class JudgingService {
 
   async submitScore(submissionId, judgeId, hackathonId, scoreData) {
     const submission = await Submission.findById(submissionId);
-    if (!submission) {
-      throw new ApiError(404, "Submission not found");
-    }
+    if (!submission) throw new ApiError(404, "Submission not found");
 
     if (submission.hackathonId.toString() !== hackathonId.toString()) {
       throw new ApiError(400, "Submission does not belong to this hackathon");
     }
 
     const hackathon = await Hackathon.findById(hackathonId);
-    if (!hackathon) {
-      throw new ApiError(404, "Hackathon not found");
-    }
+    if (!hackathon) throw new ApiError(404, "Hackathon not found");
 
     if (hackathon.submissionDeadline && new Date(hackathon.submissionDeadline) > Date.now()) {
       throw new ApiError(400, "Cannot submit scores before the submission deadline has passed");
@@ -143,11 +140,9 @@ class JudgingService {
       const submittedScore = scoreData.criterionScores.find(
         (cs) => cs.criterionName === criterion.name
       );
-
       if (!submittedScore) {
         throw new ApiError(400, `Missing score for criterion: ${criterion.name}`);
       }
-
       criterionScores.push({
         criterionName: criterion.name,
         score: submittedScore.score,
@@ -155,26 +150,55 @@ class JudgingService {
       });
     }
 
+    // Create the score record — it starts as 'submitted' (under admin review)
     const newScore = await judgingRepository.createScore({
       judgeId,
       submissionId,
       hackathonId,
       criterionScores,
       feedback: scoreData.feedback,
-      status: "Submitted"
+      status: scoreStatus.SUBMITTED   // goes to AdminReviewQueue, NOT auto-approved
     });
 
-    // Wire Automatic Updates
-    await aggregateScoresForSubmission(submissionId, hackathonId);
+    // Add to AdminReviewQueue — requires admin approval before the score
+    // can be used in aggregation/rankings.
+    // We use upsert here to safely handle any orphaned queue records left over from manual database testing.
+    await AdminReviewQueue.findOneAndUpdate(
+      { 
+        judgeId: new mongoose.Types.ObjectId(judgeId),
+        submissionId: new mongoose.Types.ObjectId(submissionId)
+      },
+      {
+        $set: {
+          hackathonId: new mongoose.Types.ObjectId(hackathonId),
+          scoreId: newScore._id,
+          scoreRecommendation: {
+            criterionScores,
+            totalScore: newScore.totalScore,
+            feedback: scoreData.feedback || ''
+          },
+          status: 'pending'
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    // Real-time push: a judge has submitted a new score
+    emitScoreSubmitted(hackathonId, {
+      scoreId:        newScore._id.toString(),
+      judgeId:        judgeId.toString(),
+      submissionId:   submissionId.toString(),
+      totalScore:     newScore.totalScore,
+      criterionScores: criterionScores,
+      feedback:       scoreData.feedback || ''
+    });
 
     return newScore;
   }
 
   async updateScore(scoreId, judgeId, updateData) {
     const score = await judgingRepository.findScoreById(scoreId);
-    if (!score) {
-      throw new ApiError(404, "Score not found");
-    }
+    if (!score) throw new ApiError(404, "Score not found");
 
     if (!judgingPolicy.isScoreOwner(score, judgeId)) {
       throw new ApiError(403, "You are not authorized to update this score");
@@ -186,11 +210,9 @@ class JudgingService {
 
       const newCriterionScores = [];
       for (const criterion of judgingCriteria) {
-        // If not provided in update, keep the old one
         const submittedScore = updateData.criterionScores.find(
           (cs) => cs.criterionName === criterion.name
         );
-
         if (submittedScore) {
           newCriterionScores.push({
             criterionName: criterion.name,
@@ -198,7 +220,6 @@ class JudgingService {
             weight: criterion.weight
           });
         } else {
-          // Keep existing
           const existing = score.criterionScores.find((cs) => cs.criterionName === criterion.name);
           if (existing) {
              newCriterionScores.push(existing);
@@ -210,16 +231,50 @@ class JudgingService {
       score.criterionScores = newCriterionScores;
     }
 
-    if (updateData.feedback !== undefined) {
-      score.feedback = updateData.feedback;
-    }
+    if (updateData.feedback !== undefined) score.feedback = updateData.feedback;
 
-    score.status = "Updated";
-    
+    // Revert to 'submitted' — an update requires another round of admin review
+    score.status = scoreStatus.SUBMITTED;
+
     const savedScore = await judgingRepository.saveScore(score);
 
-    // Wire Automatic Updates
-    await aggregateScoresForSubmission(score.submissionId, score.hackathonId);
+    // Revert queue item back to pending so admin can re-review, and update the recommendation
+    await AdminReviewQueue.findOneAndUpdate(
+      { scoreId: savedScore._id },
+      {
+        status: 'pending',
+        adminComment: 'Score updated by judge — re-queued for review',
+        resolvedBy: null,
+        resolvedAt: null,
+        scoreRecommendation: {
+          criterionScores: savedScore.criterionScores,
+          totalScore: savedScore.totalScore,
+          feedback: savedScore.feedback || ''
+        }
+      }
+    );
+
+    // Refresh submission aggregate with the (still non-approved) score
+    try {
+      await aggregateScoresForSubmission(savedScore.submissionId, savedScore.hackathonId);
+    } catch (e) {
+      console.error("aggregateScoresForSubmission error:", e);
+    }
+
+    const payload = {
+      scoreId:          savedScore._id.toString(),
+      judgeId:          judgeId.toString(),
+      submissionId:     savedScore.submissionId.toString(),
+      totalScore:       savedScore.totalScore,
+      criterionScores:  savedScore.criterionScores.map(c => c.toObject ? c.toObject() : c),
+      feedback:         savedScore.feedback || ''
+    };
+    
+    console.log(`[Socket Debug] Emitting SCORE_UPDATED to room: hackathon:${savedScore.hackathonId.toString()}`);
+    console.log(`[Socket Debug] Payload:`, JSON.stringify(payload));
+
+    // Real-time push: a judge has updated a score
+    emitScoreUpdated(savedScore.hackathonId.toString(), payload);
 
     return savedScore;
   }

@@ -22,12 +22,6 @@ export const updatePaymentValidation = Joi.object({
 })
 
 export const refundPaymentValidation = Joi.object({
-  paymentId: Joi.string().required().custom((value, helpers) => {
-    if (!value.match(/^[0-9a-fA-F]{24}$/)) {
-      return helpers.error('Invalid payment ID format')
-    }
-    return value
-  }),
   amount: Joi.number().min(0).optional(),
   reason: Joi.string().max(500).optional()
 })

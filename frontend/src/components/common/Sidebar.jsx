@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
+import NotificationDrawer from "../../pages/participant/NotificationDrawer";
 import { logout } from "../../store/authSlice";
 
 const navItems = [
@@ -16,7 +17,7 @@ const navItems = [
   },
   {
     label: "My Hackathons",
-    path: "/hackathons",
+    path: "/My-hackathons",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -118,8 +119,8 @@ const ChevronIcon = ({ flipped }) => (
   </svg>
 );
 
-export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+export default function Sidebar({ collapsed, setCollapsed }) {
+  
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const navigate = useNavigate();
@@ -188,7 +189,7 @@ export default function Sidebar() {
           background: linear-gradient(175deg, #03045e 0%, #020344 55%, #010230 100%);
           border-right: 1px solid rgba(144,224,239,0.12);
           transition: width 0.35s cubic-bezier(.4,0,.2,1);
-          position: relative;
+          position: fixed;
           overflow: visible;
           font-family: 'Poppins', sans-serif;
           box-shadow: 6px 0 32px rgba(3,4,94,0.45);
@@ -627,25 +628,43 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Nav */}
-        <div className="sb-section-label">Main Menu</div>
-        <ul className="sb-nav">
-          {navItems.map((item) => (
-            <li key={item.path}>
-              <NavLink
-                to={item.path}
-                className={({ isActive }) => `sb-nav-link${isActive ? " active" : ""}`}
-                onClick={handleNavClick}
-              >
-                <span className="sb-icon-wrap">{item.icon}</span>
-                <span className="sb-link-label">{item.label}</span>
-              </NavLink>
-              {collapsed && <span className="sb-tooltip">{item.label}</span>}
-            </li>
-          ))}
-        </ul>
+     {/* Nav */}
+<div className="sb-section-label">Main Menu</div>
+<ul className="sb-nav">
+  {navItems.map((item) => (
+    <li key={item.path}>
+      <NavLink
+        to={item.path}
+        className={({ isActive }) => `sb-nav-link${isActive ? " active" : ""}`}
+        onClick={handleNavClick}
+      >
+        <span className="sb-icon-wrap">{item.icon}</span>
+        <span className="sb-link-label">{item.label}</span>
+      </NavLink>
+      {collapsed && <span className="sb-tooltip">{item.label}</span>}
+    </li>
+  ))}
 
-        <div className="sb-divider" />
+ {/* Notifications — NotificationDrawer */}
+  <li style={{ position: "relative" }}>
+    <div className="sb-nav-link" style={{ cursor: "pointer", padding: "10px 13px" }}>
+      <span className="sb-icon-wrap">
+        <NotificationDrawer />
+      </span>
+      {!collapsed && (
+        <span className="sb-link-label"
+          onClick={() => document.querySelector(".nd-bell-btn")?.click()}
+        >
+          Notifications
+        </span>
+      )}
+    </div>
+    {collapsed && <span className="sb-tooltip">Notifications</span>}
+  </li>
+
+</ul>
+
+<div className="sb-divider" />
 
         {/* Logout */}
         <div className="sb-logout-wrap">
