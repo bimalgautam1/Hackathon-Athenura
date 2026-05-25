@@ -10,6 +10,8 @@ class JudgingPolicy {
   }
 
   isAssignedJudge(assignment) {
+    // If an assignment record exists, the judge is assigned.
+    // The model does not have a boolean 'assigned' field; existence of the record is the check.
     return !!assignment;
   }
 }

@@ -3,6 +3,7 @@
  * Handles HTTP request/response flow for admin hackathon operations.
  */
 import mongoose from 'mongoose';
+import fs from 'fs/promises';
 import ApiResponse from '../../../libs/apiResponse.js';
 import ApiError from '../../../libs/apiError.js';
 import {
@@ -14,6 +15,8 @@ import {
   listRegistrations as listRegistrationsService
 } from './adminHackathon.service.js';
 import Hackathon from './hackathon.model.js';
+import adminResultService from '../results/adminResult.service.js';
+import { uploadToCloudinary } from '../../../config/cloudinary.js';
 
 class AdminHackathonController {
   /**
@@ -21,10 +24,32 @@ class AdminHackathonController {
    */
   async createHackathon(req, res) {
     try {
+      const pdfFile = req.files && (req.files.pdf || req.files.detailsPdfUrl);
+      if (pdfFile) {
+        if (pdfFile.mimetype !== "application/pdf") {
+          try {
+            await fs.unlink(pdfFile.filepath);
+          } catch (unlinkErr) {
+            console.error("Failed to delete invalid temp file:", unlinkErr.message);
+          }
+          throw new ApiError(400, "Only PDF files allowed");
+        }
+        try {
+          const uploadResult = await uploadToCloudinary(pdfFile.filepath, { folder: "hackathon-details" });
+          req.body.detailsPdfUrl = uploadResult.secure_url;
+        } finally {
+          try {
+            await fs.unlink(pdfFile.filepath);
+          } catch (unlinkErr) {
+            console.error("Failed to delete temp file after upload:", unlinkErr.message);
+          }
+        }
+      }
       const hackathon = await createHackathonService(req.body);
       return res.status(201).json(new ApiResponse(201, hackathon, 'Hackathon created successfully'));
     } catch (error) {
-      if (error.message.includes('slug already exists')) {
+      if (error instanceof ApiError) throw error;
+      if (error.message && error.message.includes('slug already exists')) {
         throw new ApiError(409, error.message);
       }
       throw new ApiError(400, error.message);
@@ -42,6 +67,27 @@ class AdminHackathonController {
     }
 
     try {
+      const pdfFile = req.files && (req.files.pdf || req.files.detailsPdfUrl);
+      if (pdfFile) {
+        if (pdfFile.mimetype !== "application/pdf") {
+          try {
+            await fs.unlink(pdfFile.filepath);
+          } catch (unlinkErr) {
+            console.error("Failed to delete invalid temp file:", unlinkErr.message);
+          }
+          throw new ApiError(400, "Only PDF files allowed");
+        }
+        try {
+          const uploadResult = await uploadToCloudinary(pdfFile.filepath, { folder: "hackathon-details" });
+          req.body.detailsPdfUrl = uploadResult.secure_url;
+        } finally {
+          try {
+            await fs.unlink(pdfFile.filepath);
+          } catch (unlinkErr) {
+            console.error("Failed to delete temp file after upload:", unlinkErr.message);
+          }
+        }
+      }
       const hackathon = await updateHackathonService(hackathonId, req.body);
       if (!hackathon) {
         throw new ApiError(404, 'Hackathon not found');
@@ -159,6 +205,40 @@ class AdminHackathonController {
 
     return res.json(
       new ApiResponse(200, result, 'Registrations fetched successfully')
+    );
+  }
+
+  /**
+   * Compute scores and ranks
+   */
+  async computeResults(req, res) {
+    const { hackathonId } = req.params;
+    
+    if (!mongoose.isValidObjectId(hackathonId)) {
+      throw new ApiError(400, 'Invalid hackathonId format');
+    }
+
+    const result = await adminResultService.computeAndSaveDraftResults(hackathonId);
+    
+    return res.json(
+      new ApiResponse(200, result, 'Scores and ranks computed successfully')
+    );
+  }
+
+  /**
+   * Override ranks/awards
+   */
+  async overrideResults(req, res) {
+    const { hackathonId } = req.params;
+    
+    if (!mongoose.isValidObjectId(hackathonId)) {
+      throw new ApiError(400, 'Invalid hackathonId format');
+    }
+
+    const result = await adminResultService.overrideResult(hackathonId, req.body);
+    
+    return res.json(
+      new ApiResponse(200, result, 'Ranks and awards overridden successfully')
     );
   }
 }

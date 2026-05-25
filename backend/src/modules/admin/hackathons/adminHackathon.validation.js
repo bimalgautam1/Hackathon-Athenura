@@ -12,7 +12,7 @@ const createHackathonValidation = Joi.object({
   registrationDeadline: Joi.date().required().max(Joi.ref('startDate')),
   submissionDeadline: Joi.date().required().min(Joi.ref('startDate')).max(Joi.ref('endDate')),
   prizePool: Joi.number().required(),
-  registrationFee: Joi.number().required(),
+  registrationFee: Joi.alternatives().try(Joi.number().min(0), Joi.string().lowercase().valid('free')).required(),
   currency: Joi.string().valid('INR', 'DOLLAR').required(),
   minTeamSize: Joi.number().required(),
   maxTeamSize: Joi.number().optional().greater(Joi.ref('minTeamSize')),
@@ -38,6 +38,7 @@ const createHackathonValidation = Joi.object({
       logoUrl: Joi.string().uri().optional()
     })
   ).optional(),
+  detailsPdfUrl: Joi.string().uri().allow(null, '').optional(),
 });
 
 const updateHackathonValidation = Joi.object({
@@ -52,7 +53,7 @@ const updateHackathonValidation = Joi.object({
   registrationDeadline: Joi.date().max(Joi.ref('startDate')),
   submissionDeadline: Joi.date().min(Joi.ref('startDate')).max(Joi.ref('endDate')),
   prizePool: Joi.number(),
-  registrationFee: Joi.number(),
+  registrationFee: Joi.alternatives().try(Joi.number().min(0), Joi.string().lowercase().valid('free')),
   currency: Joi.string().valid('INR', 'DOLLAR'),
   minTeamSize: Joi.number(),
   maxTeamSize: Joi.number().greater(Joi.ref('minTeamSize')),
@@ -78,6 +79,7 @@ const updateHackathonValidation = Joi.object({
       logoUrl: Joi.string().uri().optional()
     })
   ),
+  detailsPdfUrl: Joi.string().uri().allow(null, '').optional(),
 });
 
 /**
