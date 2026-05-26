@@ -98,4 +98,16 @@ router.route("/me").get(verifyJWT, asyncHandler(userController.getProfile))
 
 router.route("/me/results").get(verifyJWT, asyncHandler(userController.getMyResults))
 
+// Dashboard stats endpoint
+router.route("/me/dashboard").get(verifyJWT, asyncHandler(userController.getDashboardStats))
+
+// User activity timeline endpoint
+router.route("/me/activity").get(verifyJWT, asyncHandler(userController.getUserActivity))
+
+// Active hackathons for dashboard
+router.route("/me/active-hackathons").get(verifyJWT, asyncHandler(userController.getActiveHackathons))
+
+// User certificates for dashboard
+router.route("/me/certificates").get(verifyJWT, asyncHandler(userController.getUserCertificates))
+
 export default router

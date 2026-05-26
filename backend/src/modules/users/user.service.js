@@ -6,6 +6,7 @@ import fs from "fs"
 import UserRepository from "./user.repository.js"
 import UserUtils from "./user.utils.js"
 import resultRepository from "../results/result.repository.js"
+import registrationRepository from "../registrations/registration.repository.js"
 import { uploadToCloudinary, deleteFromCloudinary } from "../../config/cloudinary.js"
 import ApiError from "../../libs/apiError.js"
 import { PROFILE_PHOTO_MAX_FILE_SIZE, PROFILE_PHOTO_UPLOAD_FOLDER } from "../../constants/user.constants.js"
@@ -35,7 +36,8 @@ class UserService {
       'collegeOrUniversity',
       'graduationYear',
       'skills',
-      'resumeLink'
+      'resumeLink',
+      'gender'
     ]
 
     const filteredData = {}
@@ -135,6 +137,225 @@ class UserService {
     const results = await resultRepository.findByUserId(userId);
     return results;
   }
+
+  /**
+   * Get dashboard statistics for the authenticated user.
+   * Returns aggregated stats: hackathons joined, submissions made,
+   * best rank, and total certificates earned.
+   */
+  async getDashboardStatsService(userId) {
+    // Get confirmed registrations count (hackathons joined)
+    const registrations = await registrationRepository.findUserRegistrationsWithDetails(
+      userId,
+      [],
+      { status: "confirmed" }
+    );
+    const hackathonsJoined = registrations.length;
+
+    // Get submissions count
+    const Submission = (await import("../submissions/submission.model.js")).default;
+    const submissionsCount = await Submission.countDocuments({ userId });
+
+    // Get best rank from published results
+    const bestRankResult = await resultRepository.findBestRankByUserId(userId);
+    const bestRank = bestRankResult?.rank || null;
+
+    // Get certificates count (completed only)
+    const Certificate = (await import("../certificates/certificate.model.js")).default;
+    const certificatesCount = await Certificate.countDocuments({
+      userId,
+      generationStatus: "COMPLETED",
+      isDeleted: { $ne: true },
+      isRevoked: { $ne: true }
+    });
+
+    return {
+      hackathonsJoined,
+      submissionsMade: submissionsCount,
+      bestRank,
+      certificates: certificatesCount
+    };
+  }
+
+  /**
+   * Get recent activity for the authenticated user.
+   * Returns a timeline of user actions including registrations,
+   * submissions, results, and certificates.
+   */
+  async getUserActivityService(userId, limit = 10) {
+    const activities = [];
+
+    // Import models
+    const Submission = (await import("../submissions/submission.model.js")).default;
+    const Certificate = (await import("../certificates/certificate.model.js")).default;
+    const Notification = (await import("../notifications/notification.model.js")).default;
+
+    // Get recent registrations
+    const recentRegistrations = await registrationRepository.findUserRegistrationsWithDetails(
+      userId,
+      [],
+      { status: "confirmed" }
+    );
+    for (const reg of recentRegistrations.slice(0, 5)) {
+      const hackathon = reg.hackathonId;
+      if (hackathon) {
+        activities.push({
+          id: `reg-${reg._id}`,
+          type: "register",
+          text: `Registered for ${hackathon.title}`,
+          time: reg.confirmedAt || reg.createdAt,
+          createdAt: reg.confirmedAt || reg.createdAt
+        });
+      }
+    }
+
+    // Get submission activities
+    const submissions = await Submission.find({ userId })
+      .sort({ submittedAt: -1 })
+      .limit(5)
+      .populate("hackathonId", "title");
+    for (const sub of submissions) {
+      if (sub.hackathonId) {
+        activities.push({
+          id: `sub-${sub._id}`,
+          type: "submit",
+          text: `Project submitted for ${sub.hackathonId.title}`,
+          time: sub.submittedAt || sub.createdAt,
+          createdAt: sub.submittedAt || sub.createdAt
+        });
+      }
+    }
+
+    // Get certificates earned
+    const certificates = await Certificate.find({
+      userId,
+      generationStatus: "COMPLETED",
+      isDeleted: { $ne: true },
+      isRevoked: { $ne: true }
+    })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate("hackathonId", "title");
+    for (const cert of certificates) {
+      if (cert.hackathonId) {
+        activities.push({
+          id: `cert-${cert._id}`,
+          type: "cert",
+          text: `Certificate downloaded — ${cert.hackathonId.title}`,
+          time: cert.updatedAt || cert.createdAt,
+          createdAt: cert.updatedAt || cert.createdAt
+        });
+      }
+    }
+
+    // Get results achieved
+    const results = await resultRepository.findByUserId(userId);
+    for (const res of results.slice(0, 5)) {
+      if (res.hackathonId) {
+        activities.push({
+          id: `res-${res._id}`,
+          type: "rank",
+          text: `Rank #${res.rank} achieved in ${res.hackathonId.title}`,
+          time: res.date || res.createdAt,
+          createdAt: res.date || res.createdAt
+        });
+      }
+    }
+
+    // Sort by createdAt descending and limit
+    activities.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return activities.slice(0, limit);
+  }
+
+  /**
+   * Get active/upcoming hackathons the user is registered for.
+   * Returns hackathon details enriched with submission status.
+   */
+  async getActiveHackathonsService(userId, limit = 6) {
+    const Submission = (await import("../submissions/submission.model.js")).default;
+
+    // Get user's team IDs
+    const teamIds = await registrationRepository.getTeamIdsByUser(userId);
+
+    // Get confirmed registrations for active/upcoming hackathons
+    const registrations = await registrationRepository.findUserRegistrationsWithDetails(
+      userId,
+      teamIds,
+      { status: "confirmed" }
+    );
+
+    // Filter to only ongoing/upcoming hackathons and enrich with submission status
+    const activeHackathons = [];
+    for (const reg of registrations) {
+      const hackathon = reg.hackathonId;
+      if (!hackathon) continue;
+
+      // Only include ongoing and upcoming hackathons
+      if (!['ongoing', 'upcoming'].includes(hackathon.status)) continue;
+
+      // Check if user has submitted
+      const submission = await Submission.findOne({
+        hackathonId: hackathon._id,
+        userId
+      }).select('status submittedAt').lean();
+
+      const hasSubmitted = submission?.status === 'Submitted';
+
+      activeHackathons.push({
+        _id: hackathon._id,
+        name: hackathon.title,
+        slug: hackathon.slug,
+        status: hackathon.status,
+        deadline: hackathon.submissionDeadline,
+        domain: hackathon.technologyDomains?.[0] || 'General',
+        prize: `${hackathon.currency === 'INR' ? '₹' : '$'}${hackathon.prizePool?.toLocaleString() || '0'}`,
+        submitted: hasSubmitted,
+        registrationId: reg._id,
+        startDate: hackathon.startDate,
+        endDate: hackathon.endDate
+      });
+    }
+
+    // Sort: ongoing first, then by deadline ascending
+    activeHackathons.sort((a, b) => {
+      if (a.status === 'ongoing' && b.status !== 'ongoing') return -1;
+      if (a.status !== 'ongoing' && b.status === 'ongoing') return 1;
+      return new Date(a.deadline) - new Date(b.deadline);
+    });
+
+    return activeHackathons.slice(0, limit);
+  }
+
+  /**
+   * Get user's recent certificates for the dashboard.
+   */
+  async getUserCertificatesService(userId, limit = 6) {
+    const Certificate = (await import("../certificates/certificate.model.js")).default;
+
+    const certificates = await Certificate.find({
+      userId,
+      generationStatus: "COMPLETED",
+      isDeleted: { $ne: true },
+      isRevoked: { $ne: true }
+    })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate('hackathonId', 'title')
+      .lean();
+
+    return certificates.map(cert => ({
+      _id: cert._id,
+      hackathon: cert.hackathonId?.title || 'Unknown Hackathon',
+      type: cert.certificateType === 'winner' ? 'Rank Certificate'
+           : cert.certificateType === 'finalist' ? 'Finalist'
+           : 'Participation',
+      rank: cert.rank ? `#${cert.rank}` : null,
+      date: new Date(cert.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
+      certificateUrl: cert.certificateUrl,
+      certificateCode: cert.certificateCode
+    }));
+  }
+
   /**
    * Upload a profile photo to Cloudinary with WebP conversion.
    * Enforces a maximum file size of 2 MB.

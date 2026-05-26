@@ -1,5 +1,6 @@
 ﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { authService } from "../../services/authService";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Poppins:wght@400;500;600;700&display=swap');
@@ -532,48 +533,47 @@ export default function Login() {
     setTimeout(() => navigate("/"), 420);
   };
 
-  const handleSubmit = async () => {
-  const newErrors = { email: "", password: "" };
-  if (!email)    newErrors.email    = "Please enter your email";
-  if (!password) newErrors.password = "Please enter your password";
-
-  if (newErrors.email || newErrors.password) {
+  const validate = () => {
+    const newErrors = {};
+    if (!email) newErrors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Invalid email format";
+    
+    if (!password) newErrors.password = "Password is required";
+    else if (password.length < 6) newErrors.password = "Password must be at least 6 characters";
+    
     setErrors(newErrors);
-    return;
-  }
+    return Object.keys(newErrors).length === 0;
+  };
 
-  setErrors({ email: "", password: "" });
-  setLoading(true);
+  const handleSubmit = async () => {
+    if (!validate()) return;
 
-  // ── DEMO USERS ──
-  const demoUsers = [
-    { email: "admin@hack.com",      password: "admin123",  role: "admin" },
-    { email: "university@hack.com", password: "univ123",   role: "university" },
-    { email: "user@hack.com",       password: "user123",   role: "user" },
-  ];
+    setLoading(true);
+    try {
+      console.log("Submitting login for:", email);
+      const response = await authService.login({ email, password });
+      console.log("Login API response:", response);
+      
+      // The API returns response.data.data (because of the ApiResponse class)
+      const { user } = response.data.data;
 
-  setTimeout(() => {
-    const found = demoUsers.find(
-      (u) => u.email === email && u.password === password
-    );
-
-    if (found) {
+      localStorage.setItem("token", response.data.data.accessToken);
+      
+      if (user.role === "admin") navigate("/admin/dashboard");
+      else if (user.role === "university") navigate("/university/dashboard");
+      else navigate("/dashboard");
+      
+    } catch (err) {
+      console.error("Login API error:", err);
+      if (err.response) {
+        console.error("Error data:", err.response.data);
+      }
+      const msg = err.response?.data?.message || "Invalid credentials";
+      setErrors({ password: msg });
+    } finally {
       setLoading(false);
-      setLeaving(true);
-      setTimeout(() => {
-        if (found.role === "admin")      navigate("/admin/dashboard");
-        else if (found.role === "university") navigate("/university/dashboard");
-        else navigate("/dashboard");
-      }, 420);
-    } else {
-      setLoading(false);
-     setErrors({ 
-  email: "Invalid email!", 
-  password: "Please check your password!" 
-});
     }
-  }, 1500);
-};
+  };
   return (
     <>
       <style>{styles}</style>
