@@ -154,7 +154,7 @@ export default function HackathonDetail() {
     );
   }
 
-  const s = statusConfig[h.status];
+  const s = statusConfig[h.status] || statusConfig.upcoming;
   const daysLeft = Math.max(
     0,
     Math.ceil((new Date(h.deadline) - new Date()) / 86400000),

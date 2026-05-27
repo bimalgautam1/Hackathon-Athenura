@@ -9,7 +9,6 @@ export const hackathonService = {
   getMySubmission: (hackathonId) => api.get(`/submissions/hackathons/${hackathonId}/submissions/me`),
   createSubmission: (hackathonId, data) => api.post(`/submissions/hackathons/${hackathonId}/submissions`, data),
   updateSubmission: (submissionId, data) => api.patch(`/submissions/${submissionId}`, data),
-
   // Admin APIs
   adminGetHackathons: () => api.get('/admin/hackathons/hackathons'),
   adminGetHackathonById: (id) => api.get(`/admin/hackathons/${id}`),
@@ -31,5 +30,7 @@ export const hackathonService = {
   },
   adminDeleteHackathon: (id) => api.delete(`/admin/hackathons/${id}`),
   adminListRegistrations: (hackathonId, params) => api.get(`/admin/hackathons/${hackathonId}/registrations`, { params }),
+
+  getWinners: (id) => api.get(`/hackathons/${id}/winners`),
 };
 

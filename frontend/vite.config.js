@@ -7,4 +7,7 @@ export default defineConfig({
   esbuild: {
     drop: ['console', 'debugger'],
   },
+  optimizeDeps: {
+    include: ['recharts', 'lodash'],
+  },
 })

@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { hackathons, domains, statuses, modes } from "../../data/hackathons";
+import { useDispatch, useSelector } from "react-redux";
+import { hackathons as mockHackathons, domains, statuses, modes } from "../../data/hackathons";
 import { hackathonService } from "../../services/hackathonService";
+import { setHackathons, setLoading } from "../../store/hackathonSlice";
 import HackathonCard from "./HackathonCard";
 import HackathonFilters from "./HackathonFilters";
 import Navbar from "./Navbar";
@@ -72,9 +74,8 @@ const mapDbHackathon = (h) => {
 
 export default function HackathonList() {
   const navigate = useNavigate();
-
-  const [hackathonsList, setHackathonsList] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const { hackathons, loading } = useSelector((state) => state.hackathon);
 
   const [filters, setFilters] = useState({
     status: "all",
@@ -88,27 +89,28 @@ export default function HackathonList() {
 
   useEffect(() => {
     const fetchHackathons = async () => {
+      dispatch(setLoading(true));
       try {
         const res = await hackathonService.getAllHackathons();
         if (res.data?.success && res.data?.data) {
           const dbHacks = res.data.data.map(mapDbHackathon);
-          const merged = [...dbHacks, ...hackathons.filter(sh => !dbHacks.some(dh => dh.title.toLowerCase() === sh.title.toLowerCase()))];
-          setHackathonsList(merged);
+          const merged = [...dbHacks, ...mockHackathons.filter(sh => !dbHacks.some(dh => dh.title.toLowerCase() === sh.title.toLowerCase()))];
+          dispatch(setHackathons(merged));
         } else {
-          setHackathonsList(hackathons);
+          dispatch(setHackathons(mockHackathons));
         }
       } catch (err) {
-        
-        setHackathonsList(hackathons);
+        console.error("Error fetching hackathons:", err);
+        dispatch(setHackathons(mockHackathons));
       } finally {
-        setLoading(false);
+        dispatch(setLoading(false));
       }
     };
     fetchHackathons();
-  }, []);
+  }, [dispatch]);
 
   const filtered = useMemo(() => {
-    return hackathonsList.filter((h) => {
+    return hackathons.filter((h) => {
       if (filters.status !== "all" && h.status !== filters.status) return false;
       if (filters.mode !== "all" && h.mode !== filters.mode) return false;
       if (filters.domain !== "All" && h.domain !== filters.domain) return false;
@@ -118,12 +120,12 @@ export default function HackathonList() {
       if (
         filters.search &&
         !h.title.toLowerCase().includes(filters.search.toLowerCase()) &&
-        !h.domain.toLowerCase().includes(filters.search.toLowerCase())
+        !(h.domain && h.domain.toLowerCase().includes(filters.search.toLowerCase()))
       )
         return false;
       return true;
     });
-  }, [filters, hackathonsList]);
+  }, [filters, hackathons]);
 
   const setFilter = (key, val) => setFilters((f) => ({ ...f, [key]: val }));
 
@@ -155,10 +157,10 @@ export default function HackathonList() {
     past: "#90E0EF",
   };
   const statusCounts = {
-    all: hackathonsList.length,
-    upcoming: hackathonsList.filter((h) => h.status === "upcoming").length,
-    ongoing: hackathonsList.filter((h) => h.status === "ongoing").length,
-    past: hackathonsList.filter((h) => h.status === "past").length,
+    all: hackathons.length,
+    upcoming: hackathons.filter((h) => h.status === "upcoming").length,
+    ongoing: hackathons.filter((h) => h.status === "ongoing").length,
+    past: hackathons.filter((h) => h.status === "past").length,
   };
 
   const pill = (active, onClick, children, activeColor = "#0077B6") => ({
