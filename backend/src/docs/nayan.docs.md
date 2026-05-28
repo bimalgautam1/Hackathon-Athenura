@@ -431,7 +431,11 @@ Response (200):
 ```json
 {
   "statusCode": 200,
-  "data": null,
+  "data": {
+    "success": true,
+    "unresolvedTies": [],
+    "computedCount": 10
+  },
   "message": "Scores and ranks computed successfully",
   "success": true
 }
@@ -458,7 +462,18 @@ Response (200):
 ```json
 {
   "statusCode": 200,
-  "data": null,
+  "data": {
+    "_id": "result_object_id",
+    "userId": "user_object_id",
+    "hackathonId": "hackathon_object_id",
+    "submissionId": "submission_object_id",
+    "rank": 2,
+    "score": 85.5,
+    "awardCategory": "Second Prize",
+    "award": "Winner",
+    "isWinner": true,
+    "isPublished": false
+  },
   "message": "Ranks and awards overridden successfully",
   "success": true
 }
@@ -475,7 +490,21 @@ Response (200):
 ```json
 {
   "statusCode": 200,
-  "data": null,
+  "data": {
+    "hackathonId": "hackathon_object_id",
+    "winners": [
+      {
+        "_id": "result_object_id",
+        "rank": 1,
+        "score": 95,
+        "awardCategory": "First Prize",
+        "isWinner": true
+      }
+    ],
+    "summary": {
+      "winnersCount": 1
+    }
+  },
   "message": "Winners fetched successfully",
   "success": true
 }
@@ -492,7 +521,29 @@ Response (200):
 ```json
 {
   "statusCode": 200,
-  "data": null,
+  "data": [
+    {
+      "_id": "result_object_id",
+      "userId": {
+        "_id": "user_object_id",
+        "fullName": "John Doe",
+        "email": "john@example.com"
+      },
+      "teamId": {
+        "_id": "team_object_id",
+        "teamName": "Code Ninjas"
+      },
+      "submissionId": {
+        "_id": "submission_object_id",
+        "title": "Awesome AI Project"
+      },
+      "rank": 1,
+      "score": 95,
+      "awardCategory": "First Prize",
+      "isWinner": true,
+      "isPublished": true
+    }
+  ],
   "message": "Results fetched successfully",
   "success": true
 }
