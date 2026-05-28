@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { userService } from "../../services/userService";
 
 // ── Scroll-reveal hook ──────────────────────────────────────────
 function useIntersection(ref, threshold = 0.12) {
@@ -143,13 +144,24 @@ const Icons = {
   ),
 };
 
-// ── Mock Data ──────────────────────────────────────────────────
-const summaryStats = [
-  { label: "Hackathons Entered",  value: 6,      icon: Icons.Hash,   color: "#0077b6", bg: "#e8f4fd" },
-  { label: "Best Rank",           value: "#2",   icon: Icons.Trophy, color: "#0077b6", bg: "#e8f4fd" },
-  { label: "Avg Score",           value: "81.4", icon: Icons.Star,   color: "#0096c7", bg: "#e0f4ff" },
-  { label: "Certificates Earned", value: 4,      icon: Icons.Award,  color: "#03045e", bg: "#eef0f8" },
-];
+function computeSummaryStats(dashboardStats, results) {
+  const totalResults = results.length;
+  const avgScore = totalResults
+    ? (results.reduce((sum, result) => sum + Number(result.totalScore || 0), 0) / totalResults).toFixed(1)
+    : "0.0";
+  const bestRankFromResults = results
+    .map(r => Number(r.rank))
+    .filter(rank => !Number.isNaN(rank) && rank > 0);
+  const bestRank = dashboardStats?.bestRank || (bestRankFromResults.length ? Math.min(...bestRankFromResults) : null);
+  const certificateCount = dashboardStats?.certificates ?? results.filter(r => r.certificateReady).length;
+
+  return [
+    { label: "Hackathons Entered",  value: dashboardStats?.hackathonsJoined ?? totalResults, icon: Icons.Hash,   color: "#0077b6", bg: "#e8f4fd" },
+    { label: "Best Rank",           value: bestRank ? `#${bestRank}` : "-",               icon: Icons.Trophy, color: "#0077b6", bg: "#e8f4fd" },
+    { label: "Avg Score",           value: avgScore,                                 icon: Icons.Star,   color: "#0096c7", bg: "#e0f4ff" },
+    { label: "Certificates Earned", value: certificateCount,                          icon: Icons.Award,  color: "#03045e", bg: "#eef0f8" },
+  ];
+}
 
 const results = [
   {
@@ -232,6 +244,31 @@ function statusConfig(status) {
   if (status === "Winner")  return { color: "#0077b6", bg: "#e8f4fd", border: "#90cdf4" };
   if (status === "Ranked")  return { color: "#0096c7", bg: "#e0f4ff", border: "#7dd3f0" };
   return                           { color: "#6b7280", bg: "#f3f4f6", border: "#d1d5db" };
+}
+
+function normalizeResult(result) {
+  const isWinner = result.isWinner || result.status === "Winner";
+  const rank = result.rank ?? null;
+  const score = result.score ?? result.totalScore ?? 0;
+  const criteria = result.criteria || [{ name: "Final Score", score, weight: 100, maxScore: 100 }];
+
+  return {
+    id: result._id || result.id,
+    hackathon: result.hackathonId?.title || result.hackathon || "Untitled Hackathon",
+    domain: result.awardCategory || result.domain || "General",
+    mode: result.teamId ? "Team" : result.mode || "Solo",
+    teamName: result.teamId?.name || result.teamName || null,
+    submittedAt: result.date ? new Date(result.date).toLocaleString() : result.submittedAt || "Unknown date",
+    rank,
+    totalParticipants: result.totalParticipants || "-",
+    status: result.status || (isWinner ? "Winner" : rank ? "Ranked" : "Participated"),
+    totalScore: score,
+    cardTheme: result.cardTheme || (isWinner ? "light" : "default"),
+    criteria,
+    judgeComment: result.judgeComment || result.feedback || result.award || "Judge feedback not available.",
+    prize: result.prize || result.award || result.awardCategory || null,
+    certificateReady: result.certificateStatus === "completed" || result.certificateReady || false,
+  };
 }
 
 // Card theme configs
@@ -618,96 +655,51 @@ function ResultCard({ result, index }) {
   );
 }
 
-// ── Full leaderboard data (10 entries) ─────────────────────────
-const leaderboardAll = [
-  { rank: 1,  name: "Aryan Sharma",   university: "DTU Delhi",    score: 96.0 },
-  { rank: 2,  name: "Priya Mehta",    university: "IIT Bombay",   score: 91.5 },
-  { rank: 3,  name: "Rohan Verma",    university: "NIT Trichy",   score: 89.2 },
-  { rank: 4,  name: "Sneha Kapoor",   university: "BITS Pilani",  score: 85.7 },
-  { rank: 5,  name: "Karan Joshi",    university: "MDU Rohtak",   score: 83.1 },
-  { rank: 6,  name: "Ananya Singh",   university: "VIT Vellore",  score: 81.4 },
-  { rank: 7,  name: "Dev Malhotra",   university: "IIT Delhi",    score: 79.9 },
-  { rank: 8,  name: "Riya Gupta",     university: "NSUT Delhi",   score: 77.3 },
-  { rank: 9,  name: "Aditya Kumar",   university: "IIT Kanpur",   score: 74.8 },
-  { rank: 10, name: "Pooja Sharma",   university: "Amity Noida",  score: 72.1 },
-];
-
-// ── Leaderboard Row ────────────────────────────────────────────
-function LeaderboardRow({ entry, index }) {
-  const medals = ["🥇", "🥈", "🥉"];
-  return (
-    <Reveal delay={index * 0.04}>
-      <div style={{
-        display: "flex", alignItems: "center", gap: 14,
-        padding: "10px 18px", borderRadius: 12,
-        background: index < 3 ? "linear-gradient(120deg,#eef0f8,#e8f4fd)" : "#fafbff",
-        border: "1.5px solid #eef0f8", marginBottom: 8,
-        transition: "box-shadow 0.2s",
-      }}
-        onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 16px rgba(3,4,94,0.09)"}
-        onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
-      >
-        <span style={{ fontSize: index < 3 ? 18 : 13, minWidth: 28, fontFamily: "Nunito,sans-serif", fontWeight: 900, color: "#03045e", textAlign: "center" }}>
-          {index < 3 ? medals[index] : `#${entry.rank}`}
-        </span>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "Nunito,sans-serif", fontWeight: 800, fontSize: 13, color: "#03045e" }}>{entry.name}</div>
-          <div style={{ fontFamily: "Poppins,sans-serif", fontSize: 11, color: "#7b8ab8" }}>{entry.university}</div>
-        </div>
-        <span style={{
-          fontFamily: "Nunito,sans-serif", fontWeight: 900, fontSize: 14,
-          color: index < 3 ? "#0077b6" : "#03045e",
-        }}>{entry.score}</span>
-      </div>
-    </Reveal>
-  );
-}
-
-// ── Score Bar for perf overview ────────────────────────────────
-function ScoreBarSimple({ score, color }) {
-  const [width, setWidth] = useState(0);
-  const ref = useRef(null);
-  const visible = useIntersection(ref, 0.1);
-  useEffect(() => {
-    if (visible) setTimeout(() => setWidth(score), 200);
-  }, [visible, score]);
-  return (
-    <div ref={ref} style={{ background: "#eef0f8", borderRadius: 99, height: 8, overflow: "hidden" }}>
-      <div style={{
-        height: "100%", borderRadius: 99,
-        background: `linear-gradient(90deg, ${color}, ${color}cc)`,
-        width: `${width}%`,
-        transition: "width 0.9s cubic-bezier(0.22,1,0.36,1)",
-        boxShadow: `0 0 8px ${color}55`,
-      }} />
-    </div>
-  );
-}
-
 // ── Main Component ─────────────────────────────────────────────
 export default function MyResults() {
   const [filter, setFilter] = useState("All");
-  const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
-  const leaderboardRef = useRef(null);
+  const [results, setResults] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const filters = ["All", "Winner", "Ranked", "Participated"];
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+
+    Promise.all([userService.getDashboardStats(), userService.getMyResults()])
+      .then(([statsRes, resultsRes]) => {
+        if (!isMounted) return;
+
+        const statsData = statsRes?.data?.data ?? statsRes?.data ?? {};
+        const responseData = resultsRes?.data;
+        const data = Array.isArray(responseData)
+          ? responseData
+          : Array.isArray(responseData?.data)
+            ? responseData.data
+            : [];
+
+        setDashboardStats(statsData);
+        setResults(data.map(normalizeResult));
+      })
+      .catch(err => {
+        if (!isMounted) return;
+        setError(err?.response?.data?.message || err.message || "Failed to load results.");
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setLoading(false);
+      });
+
+    return () => { isMounted = false; };
+  }, []);
 
   const filtered = filter === "All"
     ? results
     : results.filter(r => r.status === filter);
 
-  const displayedLeaderboard = showFullLeaderboard ? leaderboardAll : leaderboardAll.slice(0, 5);
-
-  // Close full leaderboard on outside click
-  useEffect(() => {
-    if (!showFullLeaderboard) return;
-    const handler = (e) => {
-      if (leaderboardRef.current && !leaderboardRef.current.contains(e.target)) {
-        setShowFullLeaderboard(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showFullLeaderboard]);
+  const summaryStats = computeSummaryStats(dashboardStats, results);
 
   return (
     <div style={{ minHeight: "100vh", background: "#f5f7ff", fontFamily: "Poppins,sans-serif", paddingBottom: 60 }}>
@@ -761,7 +753,7 @@ export default function MyResults() {
         </div>
 
         {/* ── Main Grid ── */}
-        <div className="mr-main-grid" style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 24, alignItems: "start" }}>
+        <div className="mr-main-grid" style={{ display: "grid", gridTemplateColumns: "1fr", gap: 24, alignItems: "start" }}>
 
           {/* ── Left: Result Cards ── */}
           <div>
@@ -785,7 +777,23 @@ export default function MyResults() {
               </div>
             </Reveal>
 
-            {filtered.length === 0 ? (
+            {loading ? (
+              <Reveal>
+                <div style={{ background: "#fff", borderRadius: 16, padding: "48px 24px", textAlign: "center", border: "1.5px solid #eef0f8" }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
+                  <div style={{ fontFamily: "Nunito,sans-serif", fontWeight: 800, color: "#03045e", fontSize: 16 }}>Loading your results...</div>
+                  <div style={{ fontFamily: "Poppins,sans-serif", fontSize: 13, color: "#7b8ab8", marginTop: 6 }}>Fetching data from the backend.</div>
+                </div>
+              </Reveal>
+            ) : error ? (
+              <Reveal>
+                <div style={{ background: "#fff", borderRadius: 16, padding: "48px 24px", textAlign: "center", border: "1.5px solid #fde2e8" }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+                  <div style={{ fontFamily: "Nunito,sans-serif", fontWeight: 800, color: "#b91c1c", fontSize: 16 }}>Unable to load results</div>
+                  <div style={{ fontFamily: "Poppins,sans-serif", fontSize: 13, color: "#7b8ab8", marginTop: 6 }}>{error}</div>
+                </div>
+              </Reveal>
+            ) : filtered.length === 0 ? (
               <Reveal>
                 <div style={{ background: "#fff", borderRadius: 16, padding: "48px 24px", textAlign: "center", border: "1.5px solid #eef0f8" }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
@@ -796,123 +804,6 @@ export default function MyResults() {
             ) : (
               filtered.map((r, i) => <ResultCard key={r.id} result={r} index={i} />)
             )}
-          </div>
-
-          {/* ── Right: Leaderboard + Performance ── */}
-          <div>
-            <Reveal delay={0.1}>
-              <div
-                ref={leaderboardRef}
-                style={{
-                  background: "#fff", borderRadius: 18,
-                  border: "1.5px solid #03045e",
-                  boxShadow: "0 2px 16px rgba(3,4,94,0.07)",
-                  overflow: "hidden", position: "sticky", top: 24,
-                }}
-              >
-                <div style={{
-                  background: "linear-gradient(120deg,#03045e,#0077b6)",
-                  padding: "18px 22px", display: "flex", alignItems: "center", gap: 10,
-                }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 10,
-                    background: "rgba(255,255,255,0.15)",
-                    display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
-                  }}>
-                    <Icons.TrendUp />
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: "Nunito,sans-serif", fontWeight: 900, fontSize: 15, color: "#fff" }}>Top Leaderboard</div>
-                    <div style={{ fontFamily: "Poppins,sans-serif", fontSize: 11, color: "rgba(255,255,255,0.7)" }}>HackWithInfy Spring 2025</div>
-                  </div>
-                </div>
-
-                <div style={{
-                  background: "linear-gradient(120deg,#e8f4fd,#dbeeff)",
-                  padding: "12px 22px", borderBottom: "1px solid #90cdf4",
-                  display: "flex", alignItems: "center", gap: 10,
-                }}>
-                  <Icons.Zap />
-                  <div>
-                    <div style={{ fontFamily: "Nunito,sans-serif", fontWeight: 800, fontSize: 12, color: "#0077b6" }}>Your Position</div>
-                    <div style={{ fontFamily: "Poppins,sans-serif", fontSize: 12, color: "#4a5568" }}>🥈 Rank 2 · Score 91.5</div>
-                  </div>
-                </div>
-
-                <div style={{
-                  padding: "16px 14px",
-                  maxHeight: showFullLeaderboard ? 520 : "none",
-                  overflowY: showFullLeaderboard ? "auto" : "visible",
-                  transition: "max-height 0.4s cubic-bezier(0.4,0,0.2,1)",
-                }}>
-                  {displayedLeaderboard.map((e, i) => <LeaderboardRow key={i} entry={e} index={i} />)}
-                </div>
-
-                <div style={{ padding: "0 14px 16px" }}>
-                  <button
-                    onClick={() => setShowFullLeaderboard(s => !s)}
-                    style={{
-                      width: "100%", padding: "10px",
-                      border: "1.5px solid #dde2f0", borderRadius: 10,
-                      background: showFullLeaderboard ? "#e8f4fd" : "#fafbff",
-                      cursor: "pointer",
-                      fontFamily: "Nunito,sans-serif", fontWeight: 700,
-                      fontSize: 12.5, color: "#0077b6",
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                      transition: "all 0.2s",
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#e8f4fd"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = showFullLeaderboard ? "#e8f4fd" : "#fafbff"; }}
-                  >
-                    <Icons.Eye />
-                    {showFullLeaderboard ? "Show Less" : "View Full Leaderboard"}
-                    <svg
-                      style={{ marginLeft: 4, transform: showFullLeaderboard ? "rotate(180deg)" : "none", transition: "transform 0.3s" }}
-                      width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" viewBox="0 0 24 24">
-                      <polyline points="6 9 12 15 18 9"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </Reveal>
-
-            {/* Performance Overview */}
-            <Reveal delay={0.18}>
-              <div style={{
-                background: "#fff", borderRadius: 18,
-                border: "1.5px solid #03045e",
-                boxShadow: "0 2px 16px rgba(3,4,94,0.07)",
-                padding: "20px 22px", marginTop: 20,
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 10,
-                    background: "#eef0f8", color: "#03045e",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <Icons.Target />
-                  </div>
-                  <span style={{ fontFamily: "Nunito,sans-serif", fontWeight: 800, fontSize: 15, color: "#03045e" }}>
-                    Performance Overview
-                  </span>
-                </div>
-
-                {[
-                  { label: "Win Rate",      value: 33, display: "33%",     color: "#03045e" },
-                  { label: "Avg Rank %ile", value: 72, display: "Top 72%", color: "#0077b6" },
-                  { label: "Best Score",    value: 96, display: "96.0",    color: "#0096c7" },
-                  { label: "Consistency",   value: 68, display: "68%",     color: "#4b4ddc" },
-                ].map((p, i) => (
-                  <div key={i} style={{ marginBottom: 14 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                      <span style={{ fontFamily: "Poppins,sans-serif", fontSize: 12, color: "#4a5568" }}>{p.label}</span>
-                      <span style={{ fontFamily: "Nunito,sans-serif", fontWeight: 800, fontSize: 13, color: p.color }}>{p.display}</span>
-                    </div>
-                    <ScoreBarSimple score={p.value} color={p.color} />
-                  </div>
-                ))}
-              </div>
-            </Reveal>
           </div>
         </div>
       </div>

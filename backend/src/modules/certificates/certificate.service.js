@@ -508,16 +508,48 @@ async function getCertificateById(certificateId) {
   return await certificateRepository.findById(certificateId);
 }
 
+/**
+ * Get certificates for a specific user (participant view).
+ * Returns completed certificates that belong to the user.
+ *
+ * @param {string} userId - The user ID to fetch certificates for
+ * @param {object} [options] - Pagination options
+ * @param {number} [options.page=1] - Page number
+ * @param {number} [options.limit=20] - Results per page
+ * @returns {Promise<object>} - Certificates data with pagination
+ */
+async function getUserCertificates(userId, options = {}) {
+  const page = Math.max(1, Number(options.page) || 1);
+  const limit = Math.min(100, Math.max(1, Number(options.limit) || 20));
+  const skip = (page - 1) * limit;
+
+  const [data, total] = await Promise.all([
+    certificateRepository.findByUserId(userId, { limit, skip }),
+    certificateRepository.countByUserId(userId)
+  ]);
+
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit)
+    }
+  };
+}
+
 const certificateService = {
-  issueCertificate,
-  regenerateCertificate,
-  revokeCertificate,
-  resendCertificateEmail,
-  listCertificates,
-  getCertificateById,
-  verifyCertificate,
-  canTransition,
-  validateTransition,
+   issueCertificate,
+   regenerateCertificate,
+   revokeCertificate,
+   resendCertificateEmail,
+   listCertificates,
+   getCertificateById,
+   getUserCertificates,
+   verifyCertificate,
+   canTransition,
+   validateTransition,
 };
 
 export default certificateService;

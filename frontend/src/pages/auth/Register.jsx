@@ -1,5 +1,6 @@
 ﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { authService } from "../../services/authService";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Poppins:wght@400;500;600;700&display=swap');
@@ -817,26 +818,27 @@ export default function Register() {
   const validateStep = (s) => {
     const e = {};
     if (s === 0) {
-      if (!form.firstName.trim()) e.firstName = "First name required";
-      if (!form.lastName.trim())  e.lastName  = "Last name required";
-      if (!form.email.trim())     e.email     = "Email required";
-      else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Enter a valid email";
-      if (!form.phone.trim())     e.phone     = "Phone number required";
-      else if (!/^\+?[\d\s\-]{7,15}$/.test(form.phone)) e.phone = "Enter a valid phone number";
+      if (!form.firstName.trim()) e.firstName = "First name is required";
+      if (!form.lastName.trim())  e.lastName  = "Last name is required";
+      if (!form.email.trim())     e.email     = "Email is required";
+      else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Invalid email format";
+      if (!form.phone.trim())     e.phone     = "Phone number is required";
+      else if (!/^\+?[\d\s\-]{7,15}$/.test(form.phone)) e.phone = "Invalid phone number";
     }
     if (s === 1) {
       if (!form.gender) e.gender = "Please select a gender";
-      if (!form.collegeOrUniversity.trim()) e.collegeOrUniversity = "College/University required";
-      if (!form.graduationYear) e.graduationYear = "Graduation year required";
+      if (!form.collegeOrUniversity.trim()) e.collegeOrUniversity = "University/College is required";
+      if (!form.graduationYear) e.graduationYear = "Graduation year is required";
+      if (form.skills.length === 0) e.skills = "Add at least one skill";
     }
     if (s === 2) {
-      if (!form.password)          e.password        = "Password required";
-      else if (form.password.length < 6)   e.password = "Min 6 characters";
+      if (!form.password)          e.password        = "Password is required";
+      else if (form.password.length < 6)   e.password = "Min 6 characters required";
       else if (!/[A-Z]/.test(form.password)) e.password = "Need at least 1 uppercase letter";
       else if (!/[^A-Za-z0-9]/.test(form.password)) e.password = "Need at least 1 special character";
-      if (!form.confirmPassword)   e.confirmPassword  = "Confirm your password";
-      else if (form.password !== form.confirmPassword) e.confirmPassword = "Passwords don't match";
-      if (!agreed) e.agreed = "Please accept the terms";
+      if (!form.confirmPassword)   e.confirmPassword  = "Please confirm your password";
+      else if (form.password !== form.confirmPassword) e.confirmPassword = "Passwords do not match";
+      if (!agreed) e.agreed = "You must accept the Terms of Service";
     }
     return e;
   };
@@ -858,8 +860,39 @@ export default function Register() {
     if (Object.keys(e).length) { setErrors(e); return; }
     setErrors({});
     setLoading(true);
-    // TODO: API call here
-    setTimeout(() => setLoading(false), 2000);
+
+    try {
+      const payload = {
+        fullName: `${form.firstName} ${form.lastName}`.trim(),
+        email: form.email,
+        password: form.password,
+        phone: form.phone,
+        dateOfBirth: form.dateOfBirth,
+        gender: form.gender,
+        collegeOrUniversity: form.collegeOrUniversity,
+        graduationYear: parseInt(form.graduationYear, 10),
+        skills: form.skills,
+        resumeLink: form.resumeLink,
+      };
+
+      console.log("Submitting registration:", payload);
+      const res = await authService.register(payload);
+      console.log("Registration response:", res);
+      
+      navigate('/verify-email', { state: { email: form.email } });
+    } catch (err) {
+      console.error("Full error object:", err);
+      if (err.response) {
+        console.error("Response data:", err.response.data);
+        console.error("Response status:", err.response.status);
+      }
+      
+      const msg = err.response?.data?.message || err.message || "Registration failed. Please check your network.";
+      setErrors({ server: msg });
+      alert(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const yearOptions = [];
@@ -1262,7 +1295,7 @@ export default function Register() {
 
                 <div className="btn-row">
                   <button className="btn-back" onClick={handleBack}>← Back</button>
-                  <button className={`register-btn${loading ? " loading" : ""}`} onClick={handleSubmit}>
+                  <button className={`register-btn${loading ? " loading" : ""}`} onClick={handleSubmit} type="button">
                     {loading && <span className="spinner" />}
                     <span>{loading ? "Creating account..." : "Create Account"}</span>
                   </button>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { hackathonService } from "../../services/hackathonService";
 
 // ── Mock Data ──────────────────────────────────────────────
 const mockHackathons = [
@@ -196,7 +197,7 @@ function StatCard({ icon, value, label, delay }) {
 
 // ── Submission Modal ───────────────────────────────────────
 function SubmissionModal({ hackathon, onClose, onSubmitted }) {
-  const [form, setForm] = useState({ github: "", demo: "", video: "", notes: "" });
+  const [form, setForm] = useState({ title: "", description: "", github: "", demo: "", video: "", notes: "" });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -209,6 +210,8 @@ function SubmissionModal({ hackathon, onClose, onSubmitted }) {
 
   const validate = () => {
     const e = {};
+    if (!form.title || !form.title.trim()) e.title = "Project title is required";
+    if (!form.description || !form.description.trim()) e.description = "Project description is required";
     if (!form.github.trim()) e.github = "GitHub repo link is required";
     else if (!form.github.startsWith("http")) e.github = "Enter a valid URL";
     if (form.demo && !form.demo.startsWith("http")) e.demo = "Enter a valid URL";
@@ -216,18 +219,31 @@ function SubmissionModal({ hackathon, onClose, onSubmitted }) {
     return e;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
     setSubmitting(true);
-    setTimeout(() => {
+    try {
+      const payload = {
+        title: form.title,
+        description: form.description,
+        repoUrl: form.github,
+        demoUrl: form.demo,
+        techStack: [],
+      };
+      const hid = hackathon.hackathonId || hackathon.id;
+      await hackathonService.createSubmission(hid, payload);
       setSubmitting(false);
       setSuccess(true);
       setTimeout(() => {
-        onSubmitted(hackathon.id);
+        onSubmitted(hackathon.id || hid);
         onClose();
-      }, 2000);
-    }, 1500);
+      }, 1400);
+    } catch (err) {
+      setSubmitting(false);
+      const msg = err?.response?.data?.message || err.message || "Submission failed";
+      setErrors(p => ({ ...p, submit: msg }));
+    }
   };
 
   const fields = [
@@ -329,6 +345,43 @@ function SubmissionModal({ hackathon, onClose, onSubmitted }) {
             <div style={{ padding: "24px 28px 28px" }}>
 
               {/* Link fields */}
+              {/* Project Title */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  fontSize: 11, fontWeight: 700, color: "#64748b",
+                  letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 7,
+                }}>
+                  Project Title *
+                </label>
+                <input
+                  value={form.title}
+                  onChange={e => { setForm(p => ({ ...p, title: e.target.value })); setErrors(p => ({ ...p, title: "" })); }}
+                  placeholder="My Awesome Project"
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: 11, outline: "none", border: `1.5px solid ${errors.title ? "#fca5a5" : "#e2e8f0"}`, background: errors.title ? "#fef2f2" : "#f8fafc", fontSize: 13, color: "#1e293b", fontFamily: "'Poppins',sans-serif", transition: "border 0.2s, box-shadow 0.2s", boxSizing: "border-box" }}
+                />
+                {errors.title && (<div style={{ fontSize: 11.5, color: "#dc2626", marginTop: 5, fontWeight: 500 }}>⚠ {errors.title}</div>)}
+              </div>
+
+              {/* Project Description */}
+              <div style={{ marginBottom: 18 }}>
+                <label style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  fontSize: 11, fontWeight: 700, color: "#64748b",
+                  letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 7,
+                }}>
+                  Project Description *
+                </label>
+                <textarea
+                  value={form.description}
+                  onChange={e => { setForm(p => ({ ...p, description: e.target.value })); setErrors(p => ({ ...p, description: "" })); }}
+                  placeholder="Describe your project, key features..."
+                  rows={4}
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: 11, outline: "none", border: `1.5px solid ${errors.description ? "#fca5a5" : "#e2e8f0"}`, background: errors.description ? "#fef2f2" : "#f8fafc", fontSize: 13, color: "#1e293b", fontFamily: "'Poppins',sans-serif", resize: "vertical", lineHeight: 1.6, transition: "border 0.2s, box-shadow 0.2s", boxSizing: "border-box" }}
+                />
+                {errors.description && (<div style={{ fontSize: 11.5, color: "#dc2626", marginTop: 5, fontWeight: 500 }}>⚠ {errors.description}</div>)}
+              </div>
+
               {fields.map(f => (
                 <div key={f.key} style={{ marginBottom: 18 }}>
                   <label style={{
@@ -662,6 +715,64 @@ export default function MyHackathons() {
   const [modalHackathon, setModalHackathon] = useState(null);
   const [headerRef, headerInView] = useInView();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await hackathonService.getMyRegistrations();
+        const regs = res?.data?.data || [];
+        const mapped = regs.map(r => {
+          const hack = r.hackathonId || {};
+          const statusMap = { upcoming: 'upcoming', ongoing: 'ongoing', past: 'completed', judging: 'completed', draft: 'upcoming' };
+          const status = statusMap[hack.status] || 'upcoming';
+          const prize = hack.prizePool != null ? `${hack.currency === 'INR' ? '₹' : '$'}${Number(hack.prizePool).toLocaleString('en-IN')}` : '';
+          const fee = hack.registrationFee === 0 ? 'Free' : `${hack.currency === 'INR' ? '₹' : '$'}${Number(hack.registrationFee).toLocaleString('en-IN')}`;
+          return {
+            id: hack._id || r._id,
+            hackathonId: hack._id || r.hackathonId,
+            name: hack.title || hack.name,
+            domain: (hack.technologyDomains && hack.technologyDomains[0]) || 'General',
+            status,
+            mode: r.mode || (Array.isArray(hack.mode) ? hack.mode[0].toLowerCase() : (hack.mode && hack.mode.toLowerCase())),
+            prize,
+            fee,
+            startDate: hack.startDate,
+            endDate: hack.endDate,
+            submissionDeadline: hack.submissionDeadline || hack.submissionDeadline,
+            registrationDate: r.createdAt || r.confirmedAt || new Date().toISOString(),
+            teamName: r.teamId?.name || (r.teamId ? r.teamId : null),
+            teamSize: (r.participantIds && r.participantIds.length) || (hack.minTeamSize || 1),
+            submitted: false,
+            rank: hack.result?.rank || null,
+            score: hack.result?.score || null,
+            image: hack.bannerUrl || hack.image || `https://picsum.photos/seed/${hack._id || Math.random()}/800/400`,
+          };
+        });
+
+        // Check existing submissions for the mapped hackathons
+        const withSubmission = await Promise.all(mapped.map(async m => {
+          try {
+            const r = await hackathonService.getMySubmission(m.hackathonId);
+            if (r?.data?.data) m.submitted = true;
+          } catch (e) {
+            // ignore
+          }
+          return m;
+        }));
+
+        if (mounted) {
+          setHackathons(withSubmission.length ? withSubmission : mockHackathons);
+        }
+      } catch (err) {
+        console.error('Failed to fetch registrations', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const filtered = hackathons.filter(h => {
     const matchStatus = statusFilter === "all" || h.status === statusFilter;
@@ -673,7 +784,10 @@ export default function MyHackathons() {
     total: hackathons.length,
     ongoing: hackathons.filter(h => h.status === "ongoing").length,
     completed: hackathons.filter(h => h.status === "completed").length,
-    bestRank: Math.min(...hackathons.filter(h => h.rank).map(h => h.rank)),
+    bestRank: (() => {
+      const ranks = hackathons.filter(h => typeof h.rank === 'number').map(h => h.rank);
+      return ranks.length ? Math.min(...ranks) : null;
+    })(),
   };
 
   const statusFilters = [

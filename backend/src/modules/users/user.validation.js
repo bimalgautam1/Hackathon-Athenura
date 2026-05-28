@@ -38,6 +38,9 @@ export const updateProfileValidation = Joi.object({
   ),
   resumeLink: Joi.string().uri().messages({
     "string.uri": "Please provide a valid URL for resume"
+  }),
+  gender: Joi.string().valid("Male", "Female", "Other").messages({
+    "any.only": "Gender must be Male, Female, or Other"
   })
 })
 

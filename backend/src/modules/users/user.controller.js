@@ -56,6 +56,79 @@ class UserController {
       new ApiResponse(200, results, "User results fetched successfully")
     )
   }
+
+  /**
+   * Get dashboard statistics for the authenticated user.
+   * Returns aggregated stats: hackathons joined, submissions made,
+   * best rank, and certificates count.
+   */
+  async getDashboardStats(req, res) {
+    const userId = req.user?._id
+
+    if (!userId) {
+      throw new ApiError(401, "Unauthorized")
+    }
+
+    const stats = await userService.getDashboardStatsService(userId)
+
+    return res.status(200).json(
+      new ApiResponse(200, stats, "Dashboard stats fetched successfully")
+    )
+  }
+
+  /**
+   * Get recent activity timeline for the authenticated user.
+   * Returns a chronological list of user actions.
+   */
+  async getUserActivity(req, res) {
+    const userId = req.user?._id
+    const limit = parseInt(req.query.limit, 10) || 10
+
+    if (!userId) {
+      throw new ApiError(401, "Unauthorized")
+    }
+
+    const activities = await userService.getUserActivityService(userId, limit)
+
+    return res.status(200).json(
+      new ApiResponse(200, activities, "User activity fetched successfully")
+    )
+  }
+  /**
+   * Get active/upcoming hackathons the user is registered for.
+   */
+  async getActiveHackathons(req, res) {
+    const userId = req.user?._id
+    const limit = parseInt(req.query.limit, 10) || 6
+
+    if (!userId) {
+      throw new ApiError(401, "Unauthorized")
+    }
+
+    const hackathons = await userService.getActiveHackathonsService(userId, limit)
+
+    return res.status(200).json(
+      new ApiResponse(200, hackathons, "Active hackathons fetched successfully")
+    )
+  }
+
+  /**
+   * Get user's recent certificates for the dashboard.
+   */
+  async getUserCertificates(req, res) {
+    const userId = req.user?._id
+    const limit = parseInt(req.query.limit, 10) || 6
+
+    if (!userId) {
+      throw new ApiError(401, "Unauthorized")
+    }
+
+    const certificates = await userService.getUserCertificatesService(userId, limit)
+
+    return res.status(200).json(
+      new ApiResponse(200, certificates, "Certificates fetched successfully")
+    )
+  }
 }
 
 const userController = new UserController()

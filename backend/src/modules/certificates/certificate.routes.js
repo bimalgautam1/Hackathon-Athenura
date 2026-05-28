@@ -85,15 +85,26 @@ router.get(
 );
 
 /**
- * GET   /certificates/:certificateId/download
- * Authenticated download of a certificate PDF.
- * Only the certificate owner or an admin may download.
- */
+  * GET   /certificates/:certificateId/download
+  * Authenticated download of a certificate PDF.
+  * Only the certificate owner or an admin may download.
+  */
+ router.get(
+   '/:certificateId/download',
+   verifyJWT,
+   validate(certificateParamsValidation, 'params'),
+   asyncHandler(certificateController.downloadCertificate)
+ );
+
+ /**
+  * GET   /certificates/me
+  * Fetches all completed certificates belonging to the authenticated user.
+  * This is the participant-facing endpoint for viewing their earned certificates.
+  */
 router.get(
-  '/:certificateId/download',
+  '/me',
   verifyJWT,
-  validate(certificateParamsValidation, 'params'),
-  asyncHandler(certificateController.downloadCertificate)
+  asyncHandler(certificateController.getUserCertificates)
 );
 
 export default router;

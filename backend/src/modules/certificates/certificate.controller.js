@@ -1,8 +1,8 @@
 /**
- * certificate.controller.js
- * Handles HTTP request/response flow for certificate, including parsing inputs
- * and returning standardized API responses.
- */
+* certificate.controller.js
+* Handles HTTP request/response flow for certificate, including parsing inputs
+* and returning standardized API responses.
+*/
 import ApiResponse from '../../libs/apiResponse.js';
 import ApiError from '../../libs/apiError.js';
 import certificateService from './certificate.service.js';
@@ -166,7 +166,7 @@ class CertificateController {
   /**
    * GET /api/v1/certificates/:certificateId/download
    * Authenticated download of a certificate PDF.
-   * Ownership guard: only the certificate owner (or an admin) can download.
+   * Only the certificate owner or an admin may download.
    * Returns a 302 redirect to the Cloudinary CDN URL so the file is
    * served directly by the CDN rather than through the API server.
    */
@@ -198,6 +198,26 @@ class CertificateController {
     // Respond with the Cloudinary CDN URL — browsers follow the redirect
     // and download the file directly from the CDN.
     return res.redirect(302, cert.certificateUrl);
+  }
+
+  /**
+   * GET /api/v1/certificates/me
+   * Fetches all completed certificates belonging to the authenticated user.
+   * This is the participant-facing endpoint for viewing their earned certificates.
+   */
+  async getUserCertificates(req, res) {
+    const authenticatedUserId = req.user?._id;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+
+    const result = await certificateService.getUserCertificates(authenticatedUserId, {
+      page,
+      limit
+    });
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, result.data, 'Certificates fetched successfully'));
   }
 }
 
