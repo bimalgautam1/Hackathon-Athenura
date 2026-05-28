@@ -95,205 +95,244 @@ export default function HackathonList() {
       <Navbar />
 
       {/* ── Hero ── */}
-      <section style={{ position: "relative", paddingTop: 56 }}>
+      <section
+        style={{
+          background: "#03045E",
+          paddingTop: 68,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {/* subtle dot grid */}
         <div
           style={{
             position: "absolute",
             inset: 0,
-            height: "100%",
-            overflow: "hidden",
-            zIndex: 0,
+            backgroundImage:
+              "radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+            pointerEvents: "none",
           }}
-        >
-          <img
-            src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1400&q=70"
-            alt=""
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "center top",
-              opacity: 0.4,
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "linear-gradient(160deg,rgba(3,4,94,0.92) 0%,rgba(0,119,182,0.6) 55%,rgba(0,180,216,0.4) 100%)",
-            }}
-          />
-        </div>
+        />
 
         <div
           style={{
+            maxWidth: 1200,
+            margin: "0 auto",
+            padding: "60px 40px 70px",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 60,
+            alignItems: "center",
             position: "relative",
             zIndex: 1,
-            maxWidth: 960,
-            margin: "0 auto",
-            padding: "60px 24px 72px",
-            textAlign: "center",
           }}
         >
-          {/* Live badge */}
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "5px 16px",
-              borderRadius: 999,
-              marginBottom: 20,
-              background: "rgba(202,240,248,0.1)",
-              border: "1px solid rgba(202,240,248,0.22)",
-              color: "#CAF0F8",
-              fontFamily: "Poppins,sans-serif",
-              fontSize: 12,
-              fontWeight: 600,
-            }}
-          >
+          {/* ── LEFT ── */}
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {/* Live badge */}
             <span
               style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: "#34D399",
-                display: "inline-block",
-              }}
-            />
-            {statusCounts.ongoing} Hackathon
-            {statusCounts.ongoing !== 1 ? "s" : ""} Live Now
-          </span>
-
-          <h1
-            style={{
-              fontFamily: "Nunito,sans-serif",
-              fontWeight: 900,
-              color: "white",
-              lineHeight: 1.1,
-              fontSize: "clamp(1.9rem,4.5vw,3.5rem)",
-              margin: "0 0 16px",
-              textShadow: "0 4px 40px rgba(0,119,182,0.5)",
-            }}
-          >
-            Build,Compete and
-            <br />
-            <span
-              style={{
-                background: "linear-gradient(90deg,#CAF0F8,#00B4D8)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              Change the World.
-            </span>
-          </h1>
-
-          <p
-            style={{
-              fontFamily: "Poppins,sans-serif",
-              fontSize: 15,
-              color: "rgba(202,240,248,0.78)",
-              margin: "0 auto 32px",
-              maxWidth: 520,
-            }}
-          >
-            Discover world-class hackathons, compete with the best minds, and
-            turn your ideas into reality.
-          </p>
-
-          {/* Search */}
-          <div
-            style={{ position: "relative", maxWidth: 500, margin: "0 auto" }}
-          >
-            <svg
-              style={{
-                position: "absolute",
-                left: 15,
-                top: "50%",
-                transform: "translateY(-50%)",
-                pointerEvents: "none",
-              }}
-              width="16"
-              height="16"
-              fill="none"
-              stroke="#b4d2d7"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search hackathons, domains..."
-              value={filters.search}
-              onChange={(e) => setFilter("search", e.target.value)}
-              style={{
-                width: "100%",
-                boxSizing: "border-box",
-                paddingLeft: 44,
-                paddingRight: 16,
-                paddingTop: 13,
-                paddingBottom: 13,
-                borderRadius: 14,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "5px 16px",
+                borderRadius: 999,
+                marginBottom: 24,
+                background: "rgba(202,240,248,0.08)",
+                border: "1px solid rgba(202,240,248,0.2)",
+                color: "#CAF0F8",
                 fontFamily: "Poppins,sans-serif",
-                fontSize: 13,
-                outline: "none",
-                background: "rgba(21, 65, 106, 0.3)",
-                backdropFilter: "blur(16px)",
-                border: "1px solid rgba(2, 34, 40, 0.22)",
-                color: "white",
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                width: "fit-content",
               }}
-            />
+            >
+              <span
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: "#34D399",
+                  display: "inline-block",
+                  animation: "heroPulse 1.8s ease-in-out infinite",
+                }}
+              />
+              {statusCounts.ongoing} Hackathon
+              {statusCounts.ongoing !== 1 ? "s" : ""} Live Now
+            </span>
+
+            <h1
+              style={{
+                fontFamily: "Nunito,sans-serif",
+                fontWeight: 900,
+                color: "white",
+                lineHeight: 1.08,
+                fontSize: "clamp(2rem,4vw,3.4rem)",
+                margin: "0 0 10px",
+                letterSpacing: "-1px",
+              }}
+            >
+              Build, Compete and
+              <br />
+              <span
+                style={{
+                  background: "linear-gradient(90deg,#CAF0F8,#00B4D8)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Change the World.
+              </span>
+            </h1>
+
+            <p
+              style={{
+                fontFamily: "Poppins,sans-serif",
+                fontSize: 15,
+                color: "rgba(202,240,248,0.65)",
+                margin: "0 0 32px",
+                lineHeight: 1.75,
+                maxWidth: 460,
+              }}
+            >
+              Discover world-class hackathons, compete with the best minds, and
+              turn your ideas into reality.
+            </p>
+
+            {/* Search */}
+            <div
+              style={{ position: "relative", maxWidth: 460, marginBottom: 40 }}
+            >
+              <svg
+                style={{
+                  position: "absolute",
+                  left: 15,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                }}
+                width="16"
+                height="16"
+                fill="none"
+                stroke="#b4d2d7"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search hackathons, domains..."
+                value={filters.search}
+                onChange={(e) => setFilter("search", e.target.value)}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  paddingLeft: 44,
+                  paddingRight: 16,
+                  paddingTop: 13,
+                  paddingBottom: 13,
+                  borderRadius: 14,
+                  fontFamily: "Poppins,sans-serif",
+                  fontSize: 13,
+                  outline: "none",
+                  background: "rgba(255,255,255,0.07)",
+                  backdropFilter: "blur(16px)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  color: "white",
+                }}
+              />
+            </div>
+
+            {/* Stats row */}
+            <div
+              style={{ display: "flex", flexWrap: "wrap", gap: "12px 36px" }}
+            >
+              {[
+                ["Hackathons", hackathons.length + "+"],
+                ["Prize Pool", "$120K+"],
+                ["Participants", "4,660+"],
+                ["Countries", "60+"],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <div
+                    style={{
+                      fontFamily: "Nunito,sans-serif",
+                      fontWeight: 900,
+                      fontSize: 24,
+                      color: "#ffffff",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {value}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "Poppins,sans-serif",
+                      fontSize: 10,
+                      color: "rgba(202,240,248,0.5)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      marginTop: 3,
+                    }}
+                  >
+                    {label}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Stats */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              gap: "12px 40px",
-              marginTop: 44,
-            }}
-          >
-            {[
-              ["Hackathons", hackathons.length + "+"],
-              ["Prize Pool", "$120K+"],
-              ["Participants", "4,660+"],
-              ["Countries", "60+"],
-            ].map(([label, value]) => (
-              <div key={label} style={{ textAlign: "center" }}>
-                <div
-                  style={{
-                    fontFamily: "Nunito,sans-serif",
-                    fontWeight: 900,
-                    fontSize: 26,
-                    color: "#f9fbfc",
-                  }}
-                >
-                  {value}
-                </div>
-                <div
-                  style={{
-                    fontFamily: "Poppins,sans-serif",
-                    fontSize: 11,
-                    color: "rgba(255, 255, 255, 0.9)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {label}
-                </div>
-              </div>
-            ))}
+          {/* ── RIGHT ── */}
+          <div style={{ position: "relative" }}>
+            {/* Image */}
+            <div
+              style={{
+                borderRadius: 20,
+                overflow: "hidden",
+                aspectRatio: "4/3",
+                position: "relative",
+                border: "1px solid rgba(255,255,255,0.1)",
+                boxShadow: "0 40px 80px rgba(0,0,0,0.45)",
+              }}
+            >
+              <img
+                src="https://tse4.mm.bing.net/th/id/OIP.legFa7fmUsOx22F-QNJ-kwHaE8?rs=1&pid=ImgDetMain&o=7&rm=3"
+                alt="Hackathon in progress"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+
+              {/* Overlay tint */}
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background:
+                    "linear-gradient(135deg,rgba(3,4,94,0.25) 0%,transparent 60%)",
+                }}
+              />
+            </div>
           </div>
         </div>
+
+        <style>{`
+          @keyframes heroPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.75); }
+          }
+        `}</style>
       </section>
 
       {/* ── Sticky filter bar ── */}
