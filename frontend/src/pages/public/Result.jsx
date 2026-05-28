@@ -1431,7 +1431,7 @@ export default function Result() {
       </section>
 
       {/* ══ CTA SECTION ══ — About-page centered structure, original content */}
-      <section style={{ padding: "110px 6%", textAlign: "center", background: NAVY, position: "relative", overflow: "hidden" }}>
+      <section style={{ padding: "60px 6% 50px", textAlign: "center", background: NAVY, position: "relative", overflow: "hidden",paddingBottom: "120px", marginBottom: "48px", borderRadius: "32px" }}>
         {/* Radial bg accents — same as About */}
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 25% 50%, rgba(255,255,255,0.04) 0%, transparent 50%), radial-gradient(circle at 75% 50%, rgba(255,255,255,0.03) 0%, transparent 50%)", pointerEvents: "none" }} />
         {/* grid texture */}
@@ -1523,6 +1523,7 @@ export default function Result() {
           </Fade>
         </div>
       </section>
+
 
       {/* ══ FULL RESULTS MODAL ══ */}
       {selectedHackathon && (

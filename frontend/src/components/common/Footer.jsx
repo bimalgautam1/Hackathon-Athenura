@@ -40,6 +40,7 @@ export default function Footer() {
         position: "relative",
         overflow: "hidden",
         margin: 0,
+        borderTop: "1px solid rgba(255,255,255,0.12)",
       }}
     >
       {/* Top border shimmer */}
@@ -49,9 +50,9 @@ export default function Footer() {
           top: 0,
           left: 0,
           right: 0,
-          height: 3,
+          height: 4,
           background:
-            "linear-gradient(to right, transparent, rgba(0,180,216,0.6), rgba(144,224,239,0.9), rgba(0,180,216,0.6), transparent)",
+            "linear-gradient(to right, transparent, rgba(0,180,216,0.8), rgba(144,224,239,1), rgba(0,180,216,0.8), transparent)",
         }}
       />
 
