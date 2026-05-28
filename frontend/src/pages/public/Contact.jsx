@@ -834,7 +834,7 @@ export default function ContactPage() {
             <div className="divider" />
 
             {/* ══ CTA ══ */}
-            <section style={{ padding: "110px 5%", textAlign: "center", background: NAVY, position: "relative", overflow: "hidden" }}>
+            <section style={{ padding: "60px 5% 50px", textAlign: "center", background: NAVY, position: "relative", overflow: "hidden",paddingBottom: "120px", marginBottom: "48px", borderRadius: "32px" }}>
                 <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 25% 50%,rgba(255,255,255,0.04) 0%,transparent 50%),radial-gradient(circle at 75% 50%,rgba(255,255,255,0.03) 0%,transparent 50%)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)", backgroundSize: "52px 52px", pointerEvents: "none" }} />
                 <div style={{ position: "relative", zIndex: 1 }}>
@@ -856,6 +856,8 @@ export default function ContactPage() {
                     </Fade>
                 </div>
             </section>
+
+           
         </div>
     );
 }
