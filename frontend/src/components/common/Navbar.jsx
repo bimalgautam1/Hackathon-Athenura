@@ -1,20 +1,18 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeLink, setActiveLink] = useState("Home");
+
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  const navigate = (path) => {
-    window.location.href = path;
-  };
 
   const NAV_LINKS = [
     { label: "Home", path: "/" },
@@ -23,6 +21,15 @@ export default function Navbar() {
     { label: "Hackathons", path: "/hackathons", badge: true },
     { label: "Contact", path: "/contact" },
   ];
+
+  // Derive active link from current URL — always in sync on every render/navigation
+  const currentPath = location.pathname;
+  const activeLink =
+    NAV_LINKS.find((link) =>
+      link.path === "/"
+        ? currentPath === "/"
+        : currentPath.startsWith(link.path),
+    )?.label ?? "Home";
 
   return (
     <>
@@ -350,10 +357,7 @@ export default function Navbar() {
                 <div className="hw-link-wrap" key={link.label}>
                   <button
                     className={`hw-link${activeLink === link.label ? " active" : ""}`}
-                    onClick={() => {
-                      setActiveLink(link.label);
-                      navigate(link.path);
-                    }}
+                    onClick={() => navigate(link.path)}
                   >
                     {link.label}
                     {link.badge && (
@@ -403,7 +407,6 @@ export default function Navbar() {
               key={link.label}
               className={`hw-mobile-link${activeLink === link.label ? " active" : ""}`}
               onClick={() => {
-                setActiveLink(link.label);
                 navigate(link.path);
                 setMenuOpen(false);
               }}
