@@ -163,7 +163,7 @@ const emailTemplates = {
     `
   }),
 
-  [EMAIL_TYPES.HACKATHON_DETAILS]: ({ fullName, hackathonTitle, problemStatement, startDate, endDate, submissionDeadline, rules, judgingCriteria, hackathonLink }) => ({
+  [EMAIL_TYPES.HACKATHON_DETAILS]: ({ fullName, hackathonTitle, problemStatement, startDate, endDate, submissionDeadline, rules, judgingCriteria, hackathonLink, detailsPdfUrl }) => ({
 
     subject: `Hackathon Details: ${hackathonTitle}`,
     html: `
@@ -197,7 +197,20 @@ const emailTemplates = {
         </div>
         ` : ''}
 
-        <p style="margin-top: 20px;">We have attached the official hackathon details PDF to this email. Please review it carefully before you begin.</p>
+        ${detailsPdfUrl ? `
+        <div style="background-color: #e3f2fd; padding: 20px; margin: 20px 0; border-left: 4px solid #1e88e5; border-radius: 4px;">
+          <h3 style="margin-top: 0; color: #1e88e5;">Official Event Details</h3>
+          <p style="margin: 4px 0; color: #333;">You can view the official event details here:</p>
+          <p style="margin: 12px 0;">
+            <a href="${detailsPdfUrl}" target="_blank" style="display: inline-block; background-color: #1e88e5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+              View Official Event PDF
+            </a>
+          </p>
+          <p style="margin: 4px 0; font-size: 13px; color: #666; word-break: break-all;">
+            Link: <a href="${detailsPdfUrl}" target="_blank" style="color: #1e88e5;">${detailsPdfUrl}</a>
+          </p>
+        </div>
+        ` : ''}
 
         <div style="text-align: center; margin: 30px 0;">
           <a href="${envConfig.clientUrl || 'http://localhost:5173'}${hackathonLink}"
@@ -210,7 +223,7 @@ const emailTemplates = {
   }),
 
   // Map HACKATHON_STARTED to the same template logic as HACKATHON_DETAILS
-  [EMAIL_TYPES.HACKATHON_STARTED]: (data) => emailTemplatesEMAIL_TYPES.HACKATHON_DETAILS
+  [EMAIL_TYPES.HACKATHON_STARTED]: (data) => emailTemplates[EMAIL_TYPES.HACKATHON_DETAILS](data)
 }
 
 /**

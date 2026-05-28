@@ -13,7 +13,7 @@ import adminRoute from '../modules/admin/admin.routes.js';
 import analyticsRoute from '../modules/admin/analytics/analytics.routes.js';
 import userRoute from '../modules/users/user.routes.js';
 import universityRoute from '../modules/universities/university.routes.js';
-// import notificationRoute from '../modules/notifications/notification.routes.js';
+import notificationRoute from '../modules/notifications/notification.routes.js';
 import certificateRoute from '../modules/certificates/certificate.routes.js';
 import teamRoute from '../modules/teams/team.routes.js';
 import adminHackathonRoute from '../modules/admin/hackathons/adminHackathon.routes.js';
@@ -42,7 +42,7 @@ router.use('/admin/analytics', analyticsRoute);
 router.use('/admin', adminRoute);
 router.use('/users', userRoute);
 router.use('/university', universityRoute);
-// router.use('/notifications', notificationRoute);
+router.use('/notifications', notificationRoute);
 router.use('/certificates', certificateRoute);
 router.use('/teams', teamRoute);
 // Public winners endpoint (JWT required, non-admin)

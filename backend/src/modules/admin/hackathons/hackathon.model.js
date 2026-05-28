@@ -129,6 +129,10 @@ const hackathonSchema = new mongoose.Schema({
   isLocked: {
     type: Boolean,
     default: false
+  },
+  detailsPdfUrl: {
+    type: String,
+    default: null
   }
 
 

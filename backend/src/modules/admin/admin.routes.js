@@ -14,6 +14,7 @@ import adminAnalyticsRouter from './analytics/analytics.routes.js';
 import adminReportRouter from './reports/adminReport.routes.js';
 import adminSettingRouter from './settings/adminSetting.routes.js';
 import adminAuthRouter from './auth/adminAuth.routes.js';
+import reviewQueueRouter from './results/reviewQueue.routes.js';
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.use('/users', adminUserRouter);
 router.use('/hackathons', adminHackathonRouter);
 router.use('/payments', adminPaymentRouter);
 router.use('/results', adminResultRouter);
+router.use('/review-queue', reviewQueueRouter);
 router.use('/certificates', adminCertificateRouter);
 router.use('/universities', adminUniversityRouter);
 router.use('/analytics', adminAnalyticsRouter);

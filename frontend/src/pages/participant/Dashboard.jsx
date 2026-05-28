@@ -1,67 +1,27 @@
 ﻿import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import NotificationDrawer from "./NotificationDrawer";
+import { userService } from "../../services/userService.js";
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-const mockStats = [
-  { id: 1, label: "Hackathons Joined", value: 8, suffix: "" },
-  { id: 2, label: "Submissions Made", value: 6, suffix: "" },
-  { id: 3, label: "Best Rank", value: 3, suffix: "#" },
-  { id: 4, label: "Certificates", value: 5, suffix: "" },
-];
+// ─── Utility: Format relative time ─────────────────────────────────────────────
+function formatTimeAgo(dateStr) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  const diffWeeks = Math.floor(diffDays / 7);
+  const diffMonths = Math.floor(diffDays / 30);
 
-const mockActiveHackathons = [
-  {
-    id: "h1",
-    name: "Smart India Hackathon 2025",
-    status: "ongoing",
-    deadline: "2025-06-10",
-    domain: "AI / ML",
-    prize: "₹1,00,000",
-    submitted: false,
-    image: "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=600&q=80",
-  },
-  {
-    id: "h2",
-    name: "HackWithInfy Spring Edition",
-    status: "upcoming",
-    deadline: "2025-07-01",
-    domain: "Web Dev",
-    prize: "₹50,000",
-    submitted: true,
-    image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&q=80",
-  },
-  {
-    id: "h3",
-    name: "DevSprint National Challenge",
-    status: "ongoing",
-    deadline: "2025-05-28",
-    domain: "Blockchain",
-    prize: "₹75,000",
-    submitted: false,
-    image: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=600&q=80",
-  },
-];
-
-const mockActivity = [
-  { id: 1, text: "Registered for Smart India Hackathon 2025", time: "2 hours ago", type: "register" },
-  { id: 2, text: "Payment successful for HackWithInfy", time: "1 day ago", type: "payment" },
-  { id: 3, text: "Project submitted for DevSprint Challenge", time: "3 days ago", type: "submit" },
-  { id: 4, text: "Certificate downloaded — HackFest 2024", time: "1 week ago", type: "cert" },
-  { id: 5, text: "Rank #3 achieved in CodeStorm 2024", time: "2 weeks ago", type: "rank" },
-];
-
-const mockCertificates = [
-  { id: "c1", hackathon: "CodeStorm 2024", type: "Rank Certificate", rank: "#3", date: "Dec 2024" },
-  { id: "c2", hackathon: "HackFest 2024", type: "Participation", rank: null, date: "Oct 2024" },
-  { id: "c3", hackathon: "BuildForBharat", type: "Rank Certificate", rank: "#7", date: "Aug 2024" },
-];
-
-const mockResults = [
-  { id: "r1", hackathon: "CodeStorm 2024", rank: 3, score: 87, total: 100, badge: "winner" },
-  { id: "r2", hackathon: "HackFest 2024", rank: 12, score: 74, total: 100, badge: "participant" },
-];
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffWeeks < 4) return `${diffWeeks}w ago`;
+  if (diffMonths < 12) return `${diffMonths}mo ago`;
+  return date.toLocaleDateString();
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getDaysLeft(deadline) {
@@ -87,7 +47,7 @@ function AnimatedCounter({ target, suffix }) {
 function AnimatedScoreBar({ score }) {
   const [width, setWidth] = useState(0);
   useEffect(() => {
-    const t = setTimeout(() => setWidth(score), 200);
+    const t = setTimeout(() => setWidth(Math.min(score, 100)), 200);
     return () => clearTimeout(t);
   }, [score]);
   return (
@@ -235,6 +195,67 @@ export default function Dashboard() {
   const today = new Date().toLocaleDateString("en-IN", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
+
+  // State for fetched data
+  const [stats, setStats] = useState([
+    { id: 1, label: "Hackathons Joined", value: 0, suffix: "" },
+    { id: 2, label: "Submissions Made", value: 0, suffix: "" },
+    { id: 3, label: "Best Rank", value: "—", suffix: "#" },
+    { id: 4, label: "Certificates", value: 0, suffix: "" },
+  ]);
+  const [activeHackathons, setActiveHackathons] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [results, setResults] = useState([]);
+  const [certificates, setCertificates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch all dashboard data on mount
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch all data in parallel
+        const [statsRes, hackathonsRes, activitiesRes, resultsRes, certificatesRes] = await Promise.all([
+          userService.getDashboardStats(),
+          userService.getActiveHackathons(6),
+          userService.getUserActivity(10),
+          userService.getMyResults(),
+          userService.getUserCertificates(6),
+        ]);
+
+        
+        
+
+        // Process stats into the format expected by the component
+        const processedStats = [
+          { id: 1, label: "Hackathons Joined", value: statsRes?.data?.hackathonsJoined || 0, suffix: "" },
+          { id: 2, label: "Submissions Made", value: statsRes?.data?.submissionsMade || 0, suffix: "" },
+          { id: 3, label: "Best Rank", value: statsRes?.data?.bestRank || "—", suffix: "#" },
+          { id: 4, label: "Certificates", value: statsRes?.data?.certificates || 0, suffix: "" },
+        ];
+
+        
+
+        setStats(processedStats);
+        setActiveHackathons(hackathonsRes?.data || []);
+        setActivities(activitiesRes?.data || []);
+        setResults(resultsRes?.data || []);
+        setCertificates(certificatesRes?.data || []);
+      } catch (err) {
+        
+        setError("Failed to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user?._id) {
+      fetchDashboardData();
+    }
+  }, [user?._id]);
 
   return (
     <>
@@ -881,28 +902,26 @@ export default function Dashboard() {
 
       <div className="db-wrap">
 
-        {/* ── Header ── */}
-        <div className="db-header">
-          <div>
-            <div className="db-username">{userName}</div>
-            <div className="db-date">{today}</div>
-          </div>
-          <div className="db-header-right">
-          <div className="db-header-right">
-  <NotificationDrawer />
+    {/* ── Header ── */}
+<div className="db-header">
+  <div>
+    <div className="db-username">{userName}</div>
+    <div className="db-date">{today}</div>
+  </div>
 </div>
-          
-          </div>
-        </div>
 
         {/* ── Stats ── */}
         <div className="db-stats">
-          {mockStats.map((stat, i) => (
+          {stats && stats.map((stat, i) => (
             <div className="db-stat-card" key={stat.id}>
               <div className="db-stat-icon">{statIcons[i]}</div>
               <div className="db-stat-info">
                 <div className="db-stat-value">
-                  <AnimatedCounter target={stat.value} suffix={stat.suffix} />
+                  {typeof stat.value === 'string' ? (
+                    <span>{stat.value}</span>
+                  ) : (
+                    <AnimatedCounter target={stat.value} suffix={stat.suffix} />
+                  )}
                 </div>
                 <div className="db-stat-label">{stat.label}</div>
               </div>
@@ -918,42 +937,57 @@ export default function Dashboard() {
           <ViewAllBtn onClick={() => navigate("/my-hackathons")} />
         </div>
         <div className="db-hackathons">
-          {mockActiveHackathons.map((h) => (
-            <div className="db-hack-card" key={h.id} onClick={() => navigate(`/hackathon/${h.id}`)}>
-              <div className="db-hack-img-wrap">
-                <img className="db-hack-img" src={h.image} alt={h.name} />
-                <div className="db-hack-img-overlay" />
-                <div className="db-hack-img-badge">
-                  <span className={`db-badge db-badge-${h.status}`}>{h.status}</span>
-                </div>
-              </div>
-              <div className="db-hack-body">
-                <div className="db-hack-name">{h.name}</div>
-                <div className="db-hack-meta">
-                  <span className="db-hack-tag"><Icons.Tag size={11} /> {h.domain}</span>
-                  <span className="db-hack-tag"><Icons.IndianRupee size={11} /> {h.prize}</span>
-                </div>
-                <div className="db-hack-bottom">
-                  <div className="db-deadline">
-                    <Icons.Clock size={13} />
-                    <strong>{getDaysLeft(h.deadline)}d</strong> left
+          {activeHackathons.length > 0 ? (
+            activeHackathons.map((h) => (
+              <div 
+                className="db-hack-card" 
+                key={h._id || h.id} 
+                onClick={() => navigate(`/hackathon/${h._id || h.id}`)}
+              >
+                <div className="db-hack-img-wrap">
+                  <img 
+                    className="db-hack-img" 
+                    src={h.image || "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=600&q=80"}
+                    alt={h.name} 
+                  />
+                  <div className="db-hack-img-overlay" />
+                  <div className="db-hack-img-badge">
+                    <span className={`db-badge db-badge-${h.status}`}>{h.status}</span>
                   </div>
-                  {h.submitted ? (
-                    <button className="db-submit-btn db-submit-btn-done">
-                      <Icons.CheckCircle size={12} /> Submitted
-                    </button>
-                  ) : (
-                   <button
-  className="db-submit-btn db-submit-btn-primary"
-  onClick={(e) => { e.stopPropagation(); navigate("/my-submissions"); }}
->
-  Submit <Icons.ArrowRight size={11} />
-</button>
-                  )}
+                </div>
+                <div className="db-hack-body">
+                  <div className="db-hack-name">{h.name}</div>
+                  <div className="db-hack-meta">
+                    <span className="db-hack-tag"><Icons.Tag size={11} /> {h.domain || "General"}</span>
+                    <span className="db-hack-tag"><Icons.IndianRupee size={11} /> {h.prize || "TBA"}</span>
+                  </div>
+                  <div className="db-hack-bottom">
+                    <div className="db-deadline">
+                      <Icons.Clock size={13} />
+                      <strong>{getDaysLeft(h.deadline)}d</strong> left
+                    </div>
+                    {h.submitted ? (
+                      <button className="db-submit-btn db-submit-btn-done">
+                        <Icons.CheckCircle size={12} /> Submitted
+                      </button>
+                    ) : (
+                      <button
+                        className="db-submit-btn db-submit-btn-primary"
+                        onClick={(e) => { e.stopPropagation(); navigate("/my-submissions"); }}
+                      >
+                        Submit <Icons.ArrowRight size={11} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
+            ))
+          ) : (
+            <div className="db-placeholder" style={{ gridColumn: "1 / -1" }}>
+              <Icons.Zap size={14} />
+              No active hackathons at the moment
             </div>
-          ))}
+          )}
         </div>
 
         {/* ── Activity + Results ── */}
@@ -967,13 +1001,20 @@ export default function Dashboard() {
               <ViewAllBtn onClick={() => navigate("/my-activity")} />
             </div>
             <div className="db-activity-list">
-              {mockActivity.map((a, i) => (
-                <div className="db-activity-item" key={a.id} style={{ animationDelay: `${0.1 * i}s` }}>
-                  <div className="db-act-icon">{activityIconsMap[a.type]}</div>
-                  <div className="db-act-text">{a.text}</div>
-                  <div className="db-act-time">{a.time}</div>
+              {activities.length > 0 ? (
+                activities.map((a, i) => (
+                  <div className="db-activity-item" key={a.id || i} style={{ animationDelay: `${0.1 * i}s` }}>
+                    <div className="db-act-icon">{activityIconsMap[a.type] || activityIconsMap.register}</div>
+                    <div className="db-act-text">{a.text}</div>
+                    <div className="db-act-time">{formatTimeAgo(a.time || a.createdAt)}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="db-placeholder">
+                  <Icons.Activity size={14} />
+                  No activities yet
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -986,23 +1027,26 @@ export default function Dashboard() {
               <ViewAllBtn onClick={() => navigate("/my-results")} />
             </div>
             <div className="db-results-list">
-              {mockResults.map((r, i) => (
-                <div className="db-result-card" key={r.id} style={{ animationDelay: `${0.15 * i}s` }}>
-                  <div className="db-result-rank">#{r.rank}</div>
-                  <div className="db-result-info">
-                    <div className="db-result-name">{r.hackathon}</div>
-                    <div className="db-result-score">Score: {r.score}/{r.total}</div>
-                    <AnimatedScoreBar score={r.score} />
+              {results.length > 0 ? (
+                results.map((r, i) => (
+                  <div className="db-result-card" key={r._id || r.id} style={{ animationDelay: `${0.15 * i}s` }}>
+                    <div className="db-result-rank">#{r.rank}</div>
+                    <div className="db-result-info">
+                      <div className="db-result-name">{r.hackathonId?.title || r.hackathon || "Unknown"}</div>
+                      <div className="db-result-score">Score: {r.score || 0}/{r.totalScore || 100}</div>
+                      <AnimatedScoreBar score={r.score ? (r.score / (r.totalScore || 100)) * 100 : 0} />
+                    </div>
+                    <span className={`db-result-badge db-result-badge-${r.badge || 'participant'}`}>
+                      {r.badge === 'winner' ? 'Winner' : 'Participant'}
+                    </span>
                   </div>
-                  <span className={`db-result-badge db-result-badge-${r.badge}`}>
-                    {r.badge}
-                  </span>
+                ))
+              ) : (
+                <div className="db-placeholder">
+                  <Icons.Star size={14} />
+                  Join more hackathons to see results
                 </div>
-              ))}
-              <div className="db-placeholder">
-                <Icons.Star size={14} />
-                Join more hackathons to see results
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -1015,25 +1059,39 @@ export default function Dashboard() {
           <ViewAllBtn onClick={() => navigate("/certificates")} />
         </div>
         <div className="db-certs">
-          {mockCertificates.map((c, i) => (
-            <div className="db-cert-card" key={c.id} style={{ animationDelay: `${0.1 * i}s` }}>
-              <div className="db-cert-top-row">
-                <div className="db-cert-icon-wrap">
-                  <Icons.GraduationCap size={22} />
+          {certificates.length > 0 ? (
+            certificates.map((c, i) => (
+              <div className="db-cert-card" key={c._id || c.id} style={{ animationDelay: `${0.1 * i}s` }}>
+                <div className="db-cert-top-row">
+                  <div className="db-cert-icon-wrap">
+                    <Icons.GraduationCap size={22} />
+                  </div>
+                  <div className="db-cert-name">{c.hackathon}</div>
                 </div>
-                <div className="db-cert-name">{c.hackathon}</div>
+                <div className="db-cert-meta">
+                  <span className="db-cert-type">{c.type}</span>
+                  {c.rank && <span className="db-cert-rank-badge">{c.rank}</span>}
+                  <span className="db-cert-date">{c.date}</span>
+                </div>
+                <button 
+                  className="db-cert-download"
+                  onClick={() => {
+                    if (c.certificateUrl) {
+                      window.open(c.certificateUrl, '_blank');
+                    }
+                  }}
+                >
+                  <span className="db-cert-download-icon"><Icons.Download size={13} /></span>
+                  Download Certificate
+                </button>
               </div>
-              <div className="db-cert-meta">
-                <span className="db-cert-type">{c.type}</span>
-                {c.rank && <span className="db-cert-rank-badge">{c.rank}</span>}
-                <span className="db-cert-date">{c.date}</span>
-              </div>
-              <button className="db-cert-download">
-                <span className="db-cert-download-icon"><Icons.Download size={13} /></span>
-                Download Certificate
-              </button>
+            ))
+          ) : (
+            <div className="db-placeholder" style={{ gridColumn: "1 / -1" }}>
+              <Icons.GraduationCap size={14} />
+              No certificates yet. Keep participating!
             </div>
-          ))}
+          )}
         </div>
 
       </div>

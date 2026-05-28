@@ -36,6 +36,20 @@ export const emitScoreSubmitted = (hackathonId, scoreData) => {
 };
 
 /**
+ * Emits a score-updated event to the hackathon room.
+ * @param {string} hackathonId
+ * @param {object} scoreData
+ */
+export const emitScoreUpdated = (hackathonId, scoreData) => {
+  try {
+    const io = getIO();
+    io.to(`hackathon:${hackathonId}`).emit(SOCKET_EVENTS.SERVER.SCORE_UPDATED, scoreData);
+  } catch (err) {
+    console.error('Socket emitScoreUpdated error:', err.message);
+  }
+};
+
+/**
  * Emits a score-approved event.
  */
 export const emitScoreApproved = (hackathonId, scoreData) => {
@@ -98,6 +112,7 @@ export const emitResultsPublished = (hackathonId, publishData) => {
 export default {
   emitProgressUpdate,
   emitScoreSubmitted,
+  emitScoreUpdated,
   emitScoreApproved,
   emitScoreRejected,
   emitRankingUpdated,

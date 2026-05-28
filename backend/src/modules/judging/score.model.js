@@ -65,7 +65,7 @@ scoreSchema.pre("save", function (next) {
   if (this.criterionScores && this.criterionScores.length > 0) {
     let totalScore = 0;
     this.criterionScores.forEach((criterion) => {
-      totalScore += criterion.score * criterion.weight;
+      totalScore += (criterion.score * criterion.weight)/10;
     });
     // Assuming weights might sum to >1, we might need to normalize, but according to plan:
     // "totalScore = sum of (score * weight) for each criterionScore"

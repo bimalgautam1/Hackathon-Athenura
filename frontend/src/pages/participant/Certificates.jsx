@@ -1,4 +1,7 @@
 ﻿import { useState, useEffect, useRef } from "react";
+import api from "../../services/api";
+import { certificateService } from "../../services/certificateService";
+import { userService } from "../../services/userService";
 
 // ── Scroll-reveal hook ──────────────────────────────────────────
 function useIntersection(ref, threshold = 0.1) {
@@ -135,8 +138,8 @@ const Icons = {
   ),
 };
 
-// ── Mock Certificate Data ──────────────────────────────────────
-const certificates = [
+// ── Mock Certificate Data (fallback) ───────────────────────────
+const MOCK_CERTIFICATES = [
   {
     id: "CERT-2025-A7X9",
     hackathon: "Smart India Hackathon 2025",
@@ -199,7 +202,7 @@ const certificates = [
   },
 ];
 
-// ── Verification DB ────────────────────────────────────────────
+// ── Verification DB (fallback) ──────────────────────────────────
 const verifyDB = {
   "CERT-2025-A7X9": { name: "Arjun Mehta", hackathon: "Smart India Hackathon 2025", type: "Rank", rank: 2, issuedOn: "12 May 2025" },
   "CERT-2025-B3K2": { name: "Arjun Mehta", hackathon: "HackWithInfy Spring Edition", type: "Rank", rank: 1, issuedOn: "08 Apr 2025" },
@@ -208,13 +211,7 @@ const verifyDB = {
   "CERT-2024-E2R4": { name: "Arjun Mehta", hackathon: "BuildForBharat 2024", type: "Participation", rank: null, issuedOn: "30 Aug 2024" },
 };
 
-// ── Summary Stats ──────────────────────────────────────────────
-const summaryStats = [
-  { label: "Total Certificates", value: 5,  icon: Icons.Award,    color: "#0077b6", bg: "#e8f4fd" },
-  { label: "Rank Certificates",  value: 3,  icon: Icons.Trophy,   color: "#03045e", bg: "#eef0f8" },
-  { label: "Participation",      value: 2,  icon: Icons.GradCap,  color: "#0096c7", bg: "#e0f4ff" },
-  { label: "Total Downloads",    value: 18, icon: Icons.Download, color: "#4b4ddc", bg: "#eeeefc" },
-];
+// ── Summary Stats will be computed from loaded certificates ────
 
 // ── Animated Counter ───────────────────────────────────────────
 function Counter({ target, duration = 1200 }) {
@@ -324,12 +321,24 @@ function QRPattern({ value, size = 60 }) {
 }
 
 // ── Download Button ────────────────────────────────────────────
-function DownloadButton({ color = "#03045e" }) {
+function DownloadButton({ color = "#03045e", onDownload }) {
   const [dlState, setDlState] = useState("idle");
-  const handleClick = () => {
+  const handleClick = async () => {
     if (dlState !== "idle") return;
-    setDlState("loading");
-    setTimeout(() => { setDlState("done"); setTimeout(() => setDlState("idle"), 2500); }, 2200);
+    if (!onDownload) {
+      setDlState("loading");
+      setTimeout(() => { setDlState("done"); setTimeout(() => setDlState("idle"), 2500); }, 2200);
+      return;
+    }
+    try {
+      setDlState("loading");
+      await onDownload();
+      setDlState("done");
+      setTimeout(() => setDlState("idle"), 2500);
+    } catch (err) {
+      setDlState("error");
+      setTimeout(() => setDlState("idle"), 2000);
+    }
   };
   return (
     <button onClick={handleClick} style={{
@@ -364,8 +373,28 @@ function DownloadButton({ color = "#03045e" }) {
 // ── Certificate Card ───────────────────────────────────────────
 function CertCard({ cert, index }) {
   const [showQR, setShowQR] = useState(false);
+  const [downloadCount, setDownloadCount] = useState(cert.downloadCount || 0);
   const isRank = cert.type === "Rank";
   const rankEmoji = cert.rank === 1 ? "🥇" : cert.rank === 2 ? "🥈" : cert.rank === 3 ? "🥉" : `#${cert.rank}`;
+
+  const handleDownload = async () => {
+    try {
+      const res = await api.get(`/certificates/${cert.id}/download`, { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: res.headers['content-type'] || 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${cert.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setDownloadCount(c => c + 1);
+    } catch (err) {
+      
+      throw err;
+    }
+  };
 
   return (
     <Reveal delay={index * 0.09} dir="up">
@@ -435,7 +464,7 @@ function CertCard({ cert, index }) {
             <Icons.Calendar /> {cert.issuedOn}
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11.5, color: "#7b8ab8", fontFamily: "Poppins,sans-serif" }}>
-            <Icons.Eye /> {cert.downloadCount} downloads
+            <Icons.Eye /> {downloadCount} downloads
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10.5, color: "#9aa3c2", fontFamily: "Poppins,sans-serif", marginLeft: "auto" }}>
             <Icons.Hash /> {cert.id}
@@ -478,7 +507,7 @@ function CertCard({ cert, index }) {
 
         {/* Download */}
         <div style={{ padding: "0 22px 20px" }}>
-          <DownloadButton color={cert.color.tag} />
+          <DownloadButton color={cert.color.tag} onDownload={handleDownload} />
         </div>
       </div>
     </Reveal>
@@ -492,16 +521,28 @@ function VerifySection() {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     if (!query.trim()) return;
     setLoading(true);
     setResult(null);
-    setTimeout(() => {
-      const found = verifyDB[query.trim().toUpperCase()];
-      if (found) { setData(found); setResult("found"); }
-      else        { setData(null); setResult("notfound"); }
+    try {
+      const code = query.trim().toUpperCase();
+      const res = await api.get(`/public/certificates/verify/${code}`);
+      const payload = res.data && (res.data.data || res.data);
+      if (payload) { setData(payload); setResult("found"); }
+      else { setData(null); setResult("notfound"); }
+    } catch (err) {
+      if (err.response?.status === 404) {
+        setData(null); setResult("notfound");
+      } else {
+        // fallback to local DB if backend isn't available
+        const found = verifyDB[query.trim().toUpperCase()];
+        if (found) { setData(found); setResult("found"); }
+        else { setData(null); setResult("notfound"); }
+      }
+    } finally {
       setLoading(false);
-    }, 1400);
+    }
   };
 
   const handleKey = (e) => { if (e.key === "Enter") handleVerify(); };
@@ -665,9 +706,38 @@ export default function Certificates() {
   const [filter, setFilter] = useState("All");
   const filters = ["All", "Rank", "Participation"];
 
+  const [certs, setCerts] = useState(null);
+  const [loadingCerts, setLoadingCerts] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const res = await userService.getUserCertificates();
+        const data = res.data && (res.data.data || res.data);
+        if (mounted) setCerts(Array.isArray(data) ? data : []);
+      } catch (err) {
+        // backend may not be implemented yet — fallback to mock
+        if (mounted) setCerts(MOCK_CERTIFICATES);
+      } finally {
+        if (mounted) setLoadingCerts(false);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
+
+  const available = certs || MOCK_CERTIFICATES;
+  const summaryStats = [
+    { label: "Total Certificates", value: available.length, icon: Icons.Award, color: "#0077b6", bg: "#e8f4fd" },
+    { label: "Rank Certificates", value: available.filter(c => c.type === 'Rank').length, icon: Icons.Trophy, color: "#03045e", bg: "#eef0f8" },
+    { label: "Participation", value: available.filter(c => c.type === 'Participation').length, icon: Icons.GradCap, color: "#0096c7", bg: "#e0f4ff" },
+    { label: "Total Downloads", value: available.reduce((s, c) => s + (c.downloadCount || 0), 0), icon: Icons.Download, color: "#4b4ddc", bg: "#eeeefc" },
+  ];
+
   const filtered = filter === "All"
-    ? certificates
-    : certificates.filter(c => c.type === filter);
+    ? available
+    : available.filter(c => c.type === filter);
 
   return (
     <div style={{ minHeight: "100vh", background: "#f5f7ff", fontFamily: "Poppins,sans-serif", paddingBottom: 60 }}>

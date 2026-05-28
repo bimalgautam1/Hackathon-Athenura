@@ -1,5 +1,8 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { authService } from "../../services/authService";
+import { setCredentials } from "../../store/authSlice";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Poppins:wght@400;500;600;700&display=swap');
@@ -521,6 +524,7 @@ export default function Login() {
   const [leaving, setLeaving]   = useState(false);
   const [errors, setErrors]     = useState({ email: "", password: "" });
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const goToSignUp = () => {
     setLeaving(true);
@@ -532,48 +536,45 @@ export default function Login() {
     setTimeout(() => navigate("/"), 420);
   };
 
-  const handleSubmit = async () => {
-  const newErrors = { email: "", password: "" };
-  if (!email)    newErrors.email    = "Please enter your email";
-  if (!password) newErrors.password = "Please enter your password";
-
-  if (newErrors.email || newErrors.password) {
+  const validate = () => {
+    const newErrors = {};
+    if (!email) newErrors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Invalid email format";
+    
+    if (!password) newErrors.password = "Password is required";
+    else if (password.length < 6) newErrors.password = "Password must be at least 6 characters";
+    
     setErrors(newErrors);
-    return;
-  }
+    return Object.keys(newErrors).length === 0;
+  };
 
-  setErrors({ email: "", password: "" });
-  setLoading(true);
+  const handleSubmit = async () => {
+    if (!validate()) return;
 
-  // ── DEMO USERS ──
-  const demoUsers = [
-    { email: "admin@hack.com",      password: "admin123",  role: "admin" },
-    { email: "university@hack.com", password: "univ123",   role: "university" },
-    { email: "user@hack.com",       password: "user123",   role: "user" },
-  ];
+    setLoading(true);
+    try {
+      const response = await authService.login({ email, password });
+      
+      // The API returns response.data.data (because of the ApiResponse class)
+      const { user } = response.data.data;
+      const token = response.data.data.accessToken;
 
-  setTimeout(() => {
-    const found = demoUsers.find(
-      (u) => u.email === email && u.password === password
-    );
-
-    if (found) {
+      localStorage.setItem("token", token);
+      dispatch(setCredentials({ user, token }));
+      
+      const roleLower = user.role?.toLowerCase();
+      if (roleLower === "admin") navigate("/admin");
+      else if (roleLower === "university") navigate("/university");
+      else if (roleLower === "judge") navigate("/judge");
+      else navigate("/dashboard");
+      
+    } catch (err) {
+      const msg = err.response?.data?.message || "Invalid credentials";
+      setErrors({ password: msg });
+    } finally {
       setLoading(false);
-      setLeaving(true);
-      setTimeout(() => {
-        if (found.role === "admin")      navigate("/admin/dashboard");
-        else if (found.role === "university") navigate("/university/dashboard");
-        else navigate("/dashboard");
-      }, 420);
-    } else {
-      setLoading(false);
-     setErrors({ 
-  email: "Invalid email!", 
-  password: "Please check your password!" 
-});
     }
-  }, 1500);
-};
+  };
   return (
     <>
       <style>{styles}</style>

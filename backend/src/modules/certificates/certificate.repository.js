@@ -7,17 +7,50 @@ import { GENERATION_STATUS } from './certificate.constants.js';
 
 class CertificateRepository {
   /**
-   * Find a certificate by its internal MongoDB id.
-   */
+  * Find a certificate by its internal MongoDB id.
+  */
   async findById(certificateId) {
     return await Certificate.findById(certificateId);
+  }
+
+  /**
+   * Find certificates by user ID with optional filters.
+   * Used for the 'my certificates' endpoint.
+   */
+  async findByUserId(userId, options = {}) {
+    const { limit = 20, skip = 0 } = options;
+    return await Certificate.find({
+      userId,
+      isDeleted: false,
+      isRevoked: false,
+      generationStatus: GENERATION_STATUS.COMPLETED
+    })
+      .populate('hackathonId', 'title')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+  }
+
+  /**
+   * Count certificates for a user.
+   */
+  async countByUserId(userId) {
+    return await Certificate.countDocuments({
+      userId,
+      isDeleted: false,
+      isRevoked: false,
+      generationStatus: GENERATION_STATUS.COMPLETED
+    });
   }
 
   /**
    * Find a certificate by its unique public verification code.
    */
   async findByCode(certificateCode) {
-    return await Certificate.findOne({ certificateCode });
+    return await Certificate.findOne({ certificateCode })
+      .populate('userId', 'fullName')
+      .populate('hackathonId', 'title');
   }
 
   /**

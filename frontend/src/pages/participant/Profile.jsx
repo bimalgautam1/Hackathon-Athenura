@@ -1,5 +1,7 @@
 ﻿import { useState, useEffect, useRef } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { setCredentials } from "../../store/authSlice";
+import { userService } from "../../services/userService";
 
 const Icons = {
   User: ({ size = 20 }) => (
@@ -127,24 +129,42 @@ const Icons = {
 };
 
 const initialProfile = {
-  fullName: "Aryan Sharma",
-  email: "aryan.sharma@mdu.ac.in",
-  phone: "+91 98765 43210",
-  dob: "2002-08-15",
-  college: "Maharshi Dayanand University",
-  graduationYear: "2025",
+  fullName: "",
+  email: "",
+  phone: "",
+  dob: "",
+  gender: "",
+  college: "",
+  graduationYear: "",
   role: "Participant",
-  skills: ["React.js", "Node.js", "MongoDB", "Python", "Machine Learning", "Docker"],
-  resumeLink: "https://drive.google.com/resume-aryan",
-  location: "Rohtak, Haryana",
-  bio: "Full-stack developer passionate about building impactful solutions. Love participating in hackathons and solving real-world problems.",
+  skills: [],
+  resumeLink: "",
+  isEmailVerified: false,
 };
 
-const profileStats = [
-  { label: "Hackathons", value: 8, icon: <Icons.Zap size={20} /> },
-  { label: "Best Rank", value: "#3", icon: <Icons.Trophy size={20} /> },
-  { label: "Certificates", value: 5, icon: <Icons.Award size={20} /> },
+const defaultProfileStats = [
+  { label: "Hackathons", value: 0, icon: <Icons.Zap size={20} /> },
+  { label: "Best Rank", value: "—", icon: <Icons.Trophy size={20} /> },
+  { label: "Certificates", value: 0, icon: <Icons.Award size={20} /> },
 ];
+
+const mapApiProfileToState = (apiUser) => ({
+  fullName: apiUser.fullName || "",
+  email: apiUser.email || "",
+  phone: apiUser.phone ? String(apiUser.phone) : "",
+  dob: apiUser.dateOfBirth ? new Date(apiUser.dateOfBirth).toISOString().slice(0, 10) : "",
+  gender: apiUser.gender || "",
+  college: apiUser.collegeOrUniversity || "",
+  graduationYear: apiUser.graduationYear ? String(apiUser.graduationYear) : "",
+  role: apiUser.role || "Participant",
+  skills: Array.isArray(apiUser.skills)
+    ? apiUser.skills
+    : typeof apiUser.skills === "string"
+      ? apiUser.skills.split(",").map((skill) => skill.trim()).filter(Boolean)
+      : [],
+  resumeLink: apiUser.resumeLink || "",
+  isEmailVerified: apiUser.isEmailVerified || false,
+});
 
 function RevealSection({ children, delay = 0 }) {
   const ref = useRef(null);
@@ -277,22 +297,93 @@ function PasswordModal({ onClose }) {
 }
 
 export default function Profile() {
-  const { user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const { user, token } = useSelector((state) => state.auth);
   const [profile, setProfile] = useState(initialProfile);
-  const [editMode, setEditMode] = useState(false);
   const [draft, setDraft] = useState(initialProfile);
+  const [profileStats, setProfileStats] = useState(defaultProfileStats);
+  const [editMode, setEditMode] = useState(false);
   const [newSkill, setNewSkill] = useState("");
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
-  const handleEdit = () => { setDraft(profile); setEditMode(true); setSaved(false); };
-  const handleCancel = () => { setEditMode(false); setDraft(profile); };
-  const handleSave = () => {
-    setProfile(draft);
-    setEditMode(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const loadProfile = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await userService.getProfile();
+      const apiUser = response.data?.data || response.data;
+      const mappedProfile = mapApiProfileToState(apiUser);
+      setProfile(mappedProfile);
+      setDraft(mappedProfile);
+      if (token) {
+        dispatch(setCredentials({ user: { ...user, ...mappedProfile }, token }));
+      }
+    } catch (err) {
+      
+      setError(err.response?.data?.message || "Unable to load profile. Please refresh.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const loadDashboardStats = async () => {
+    try {
+      const response = await userService.getDashboardStats();
+      const result = response.data?.data || response.data;
+      setProfileStats([
+        { label: "Hackathons", value: result.hackathonsJoined ?? 0, icon: <Icons.Zap size={20} /> },
+        { label: "Best Rank", value: result.bestRank ? `#${result.bestRank}` : "—", icon: <Icons.Trophy size={20} /> },
+        { label: "Certificates", value: result.certificates ?? 0, icon: <Icons.Award size={20} /> },
+      ]);
+    } catch (err) {
+      
+    }
+  };
+
+  useEffect(() => {
+    loadProfile();
+    loadDashboardStats();
+  }, []);
+
+  const handleEdit = () => { setDraft(profile); setEditMode(true); setSaved(false); setError(""); };
+  const handleCancel = () => { setEditMode(false); setDraft(profile); setError(""); };
+  const handleSave = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      const payload = {
+        fullName: draft.fullName,
+        phone: draft.phone ? Number(String(draft.phone).replace(/\D/g, "")) : undefined,
+        dateOfBirth: draft.dob,
+        collegeOrUniversity: draft.college,
+        graduationYear: draft.graduationYear ? Number(draft.graduationYear) : undefined,
+        skills: draft.skills,
+        resumeLink: draft.resumeLink,
+        gender: draft.gender,
+      };
+      const response = await userService.updateProfile(payload);
+      const apiUser = response.data?.data || response.data;
+      const updatedProfile = mapApiProfileToState(apiUser);
+      setProfile(updatedProfile);
+      setDraft(updatedProfile);
+      setEditMode(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+      if (token) {
+        dispatch(setCredentials({ user: { ...user, ...updatedProfile }, token }));
+      }
+    } catch (err) {
+      
+      setError(err.response?.data?.message || err.message || "Failed to save profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleChange = (field, value) => setDraft((p) => ({ ...p, [field]: value }));
   const handleAddSkill = () => {
     const s = newSkill.trim();
@@ -305,6 +396,14 @@ export default function Profile() {
     setDraft((p) => ({ ...p, skills: p.skills.filter((s) => s !== skill) }));
 
   const dp = editMode ? draft : profile;
+
+  if (loading) {
+    return (
+      <div className="pf-wrap" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontSize: 16, color: '#03045e' }}>Loading profile...</div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -667,6 +766,11 @@ export default function Profile() {
             <Icons.CheckCircle size={16} /> Profile saved successfully!
           </div>
         )}
+        {error && (
+          <div style={{ background: '#fee2e2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px', color: '#b91c1c', fontSize: 13, marginBottom: 18 }}>
+            {error}
+          </div>
+        )}
 
         {/* Page Header */}
         <RevealSection delay={0}>
@@ -690,8 +794,8 @@ export default function Profile() {
                   <button className="pf-cancel-btn" onClick={handleCancel}>
                     <Icons.X size={15} /> Cancel
                   </button>
-                  <button className="pf-save-btn" onClick={handleSave}>
-                    <Icons.Save size={15} /> Save Changes
+                  <button className="pf-save-btn" onClick={handleSave} disabled={saving}>
+                    <Icons.Save size={15} /> {saving ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               )}
@@ -714,9 +818,9 @@ export default function Profile() {
               <div className="pf-hero-info">
                 <div className="pf-hero-name">{dp.fullName}</div>
                 <div className="pf-hero-role"><Icons.Shield size={11} /> {dp.role}</div>
-                <div className="pf-hero-bio">{dp.bio}</div>
+                <div className="pf-hero-bio">{dp.gender ? `Proud ${dp.gender} participant on the platform.` : "Hackathon participant building stronger ideas."}</div>
                 <div className="pf-hero-meta">
-                  {dp.location && <div className="pf-hero-meta-item"><Icons.MapPin size={13} /> {dp.location}</div>}
+                  {dp.gender && <div className="pf-hero-meta-item"><Icons.User size={13} /> {dp.gender}</div>}
                   {dp.college && <div className="pf-hero-meta-item"><Icons.Building size={13} /> {dp.college}</div>}
                   {dp.graduationYear && <div className="pf-hero-meta-item"><Icons.GraduationCap size={13} /> Class of {dp.graduationYear}</div>}
                 </div>
@@ -758,9 +862,20 @@ export default function Profile() {
                   <Icons.Mail size={13} /> Email
                   <span className="pf-verify-badge"><Icons.CheckCircle size={10} /> Verified</span>
                 </div>
+                <div className="pf-field-value">{profile.email}</div>
+              </div>
+              <div className="pf-field">
+                <div className="pf-field-label"><Icons.User size={13} /> Gender</div>
                 {editMode
-                  ? <input className="pf-input" type="email" value={draft.email} onChange={(e) => handleChange("email", e.target.value)} placeholder="Email" />
-                  : <div className="pf-field-value">{profile.email}</div>}
+                  ? (
+                    <select className="pf-input" value={draft.gender} onChange={(e) => handleChange("gender", e.target.value)}>
+                      <option value="">Select gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  )
+                  : <div className="pf-field-value">{profile.gender || "Not specified"}</div>}
               </div>
               <div className="pf-field">
                 <div className="pf-field-label"><Icons.Phone size={13} /> Phone</div>
@@ -772,19 +887,7 @@ export default function Profile() {
                 <div className="pf-field-label"><Icons.Calendar size={13} /> Date of Birth</div>
                 {editMode
                   ? <input className="pf-input" type="date" value={draft.dob} onChange={(e) => handleChange("dob", e.target.value)} />
-                  : <div className="pf-field-value">{new Date(profile.dob).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</div>}
-              </div>
-              <div className="pf-field">
-                <div className="pf-field-label"><Icons.MapPin size={13} /> Location</div>
-                {editMode
-                  ? <input className="pf-input" value={draft.location} onChange={(e) => handleChange("location", e.target.value)} placeholder="City, State" />
-                  : <div className="pf-field-value">{profile.location}</div>}
-              </div>
-              <div className="pf-field pf-field-full">
-                <div className="pf-field-label"><Icons.Edit size={13} /> Bio</div>
-                {editMode
-                  ? <textarea className="pf-input" value={draft.bio} onChange={(e) => handleChange("bio", e.target.value)} placeholder="Tell us about yourself..." />
-                  : <div className="pf-field-value">{profile.bio}</div>}
+                  : <div className="pf-field-value">{profile.dob ? new Date(profile.dob).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : "Not set"}</div>}
               </div>
             </div>
           </div>
@@ -889,7 +992,7 @@ export default function Profile() {
                 <div className="pf-security-sub">{profile.email}</div>
               </div>
               <span className="pf-verify-badge" style={{ marginLeft: 0 }}>
-                <Icons.CheckCircle size={10} /> Verified
+                <Icons.CheckCircle size={10} /> {profile.isEmailVerified ? "Verified" : "Unverified"}
               </span>
             </div>
             <div className="pf-security-row">

@@ -12,6 +12,12 @@ import Hackathon from '../../admin/hackathons/hackathon.model.js';
 import Result from '../../results/result.model.js';
 import { publishFinalResults } from '../../results/publish.service.js';
 import { scoreStatus } from '../../judging/judging.constants.js';
+import {
+  emitRankingUpdated,
+  emitDraftReady,
+  emitResultsPublished,
+  emitProgressUpdate
+} from '../../../sockets/publisher/socket.publisher.js';
 
 class AdminResultService {
 
@@ -55,7 +61,23 @@ class AdminResultService {
         draft.award = rankOverride <= 3 ? 'Winner' : 'Participant';
 
         await draft.save();
+
+        // ── Real-time socket push (single record override) ───────────────────
+        emitRankingUpdated(hackathonId, {
+          hackathonId:   hackathonId.toString(),
+          source:        'draft_updated',
+          updated:       [draft.submissionId.toString()],
+          rankOverride
+        });
+        emitDraftReady(hackathonId, {
+          hackathonId:   hackathonId.toString(),
+          draftId:       draft._id.toString(),
+          updatedRank:   draft.rank
+        });
+
+        return draft;
       }
+
       return draft;
     }
 
@@ -88,6 +110,18 @@ class AdminResultService {
           }
         );
       }
+
+      // ── Real-time socket push (bulk reorder) ────────────────────────────────────
+      emitRankingUpdated(hackathonId, {
+        hackathonId:    hackathonId.toString(),
+        source:         'draft_reordered',
+        totalEntries:   manualOrder.length
+      });
+      emitDraftReady(hackathonId, {
+        hackathonId:    hackathonId.toString(),
+        reorderedCount: manualOrder.length
+      });
+
       return { success: true, hackathonId, reorderedCount: manualOrder.length };
     }
 
@@ -95,7 +129,7 @@ class AdminResultService {
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // CRUD stubs — now real queries against the Result model
+  // CRUD stubs — now real queries into Result model
   // ─────────────────────────────────────────────────────────────────
 
   async listResults({ page = 1, limit = 20, hackathonId, status }) {
@@ -275,6 +309,16 @@ class AdminResultService {
       // await Hackathon.findByIdAndUpdate(hackathonId, { publishStatus: 'side_effects_complete' });
 
 
+      // ── Real-time socket push ────────────────────────────────────────
+      emitResultsPublished(hackathonId, {
+        hackathonId:              hackathonId.toString(),
+        totalResultsPublished:    insertedResults.length,
+        publishedAt:              new Date()
+      });
+      emitProgressUpdate(hackathonId, {
+        hackathonId:              hackathonId.toString(),
+        resultsPublished:         true
+      });
 
       return {
         hackathonId,

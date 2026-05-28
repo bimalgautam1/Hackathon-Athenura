@@ -1,5 +1,6 @@
-import { Routes, Route } from 'react-router-dom'
-
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+import AdminNotifications from '../pages/admin/AdminNotifications'
 import Login from '../pages/auth/Login'
 import Register from '../pages/auth/Register'
 import VerifyEmail from '../pages/auth/VerifyEmail'
@@ -9,8 +10,6 @@ import Home from '../pages/participant/Home'
 import HackathonDetail from '../pages/participant/HackathonDetail'
 import Dashboard from '../pages/participant/Dashboard'
 import Profile from '../pages/participant/Profile'
-import SoloRegister from '../pages/participant/SoloRegister'
-import TeamRegister from '../pages/participant/TeamRegister'
 import TeamInviteAccept from '../pages/participant/TeamInviteAccept'
 import Payment from '../pages/participant/Payment'
 import PaymentStatus from '../pages/participant/PaymentStatus'
@@ -20,6 +19,7 @@ import Certificates from '../pages/participant/Certificates'
 import MyHackathons from '../pages/participant/MyHackathons'   // ✅ NEW
 import MySubmissions from '../pages/participant/MySubmissions' // ✅ NEW
 import MyResults from '../pages/participant/MyResults'         // ✅ NEW
+import ExploreHackathons from '../pages/participant/ExploreHackathons' // ✅ NEW
 
 import AdminDashboard from '../pages/admin/AdminDashboard'
 import CreateHackathon from '../pages/admin/CreateHackathon'
@@ -45,14 +45,36 @@ import Contact from '../pages/public/Contact'
 import Result from '../pages/public/Result' // ✅ NEW
 
 import Layout from '../components/common/Layout' // ✅ NEW
+import AdminLayout from '../components/common/AdminLayout'
 import PublicLayout from '../components/common/PublicLayout' // ✅ NEW
 
 
 import PublicHackathonList from '../components/common/HackathonList'
 import HackathonJoin from '../pages/participant/HackathonJoin'
-import JoinWorkFlow from '../pages/participant/JoinWorkFlow'
 import HostHackathon from '../pages/admin/HostHackathon'
 
+function ProtectedRoute({ children, allowedRoles }) {
+  const { user, isAuthenticated } = useSelector((state) => state.auth)
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.role?.toLowerCase())) {
+    const roleLower = user.role?.toLowerCase()
+    if (roleLower === 'admin') {
+      return <Navigate to="/admin" replace />
+    } else if (roleLower === 'university') {
+      return <Navigate to="/university" replace />
+    } else if (roleLower === 'judge') {
+      return <Navigate to="/judge" replace />
+    } else {
+      return <Navigate to="/dashboard" replace />
+    }
+  }
+
+  return children
+}
 
 export default function AppRoutes() {
   return (
@@ -63,7 +85,6 @@ export default function AppRoutes() {
       <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
       <Route path="/hackathons" element={<PublicLayout><PublicHackathonList /></PublicLayout>} />
       <Route path="/hackathons/:id/join" element={<PublicLayout><HackathonJoin /></PublicLayout>} />
-      <Route path="/join-workflow" element={<PublicLayout><JoinWorkFlow /></PublicLayout>} />
       <Route path="/host" element={<PublicLayout><HostHackathon /></PublicLayout>} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -75,44 +96,44 @@ export default function AppRoutes() {
 
       {/* Participant */}
       <Route path="/hackathon/:id" element={<PublicLayout><HackathonDetail /></PublicLayout>} />
-      <Route path="/hackathon/:id/register/solo" element={<SoloRegister />} />
-      <Route path="/hackathon/:id/register/team" element={<TeamRegister />} />
-      <Route path="/team/invite/:token" element={<TeamInviteAccept />} />
-      <Route path="/payment/:registrationId" element={<Payment />} />
-      <Route path="/payment/status" element={<PaymentStatus />} />
-      <Route path="/hackathon/:id/submit" element={<ProjectSubmission />} />
-      <Route path="/results/:hackathonId" element={<Results />} />
+      <Route path="/team/invite/:token" element={<ProtectedRoute><TeamInviteAccept /></ProtectedRoute>} />
+      <Route path="/payment/:registrationId" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
+      <Route path="/payment/status" element={<ProtectedRoute><PaymentStatus /></ProtectedRoute>} />
+      <Route path="/hackathon/:id/submit" element={<ProtectedRoute><ProjectSubmission /></ProtectedRoute>} />
+      <Route path="/results/:hackathonId" element={<ProtectedRoute><Results /></ProtectedRoute>} />
 
       {/* ✅ Sidebar wali pages — Layout mein wrap */}
-      <Route path="/dashboard"      element={<Layout><Dashboard /></Layout>} />
-      <Route path="/certificates"   element={<Layout><Certificates /></Layout>} />
-      <Route path="/profile"        element={<Layout><Profile /></Layout>} />
-      <Route path="/my-hackathons"  element={<Layout><MyHackathons /></Layout>} />
-      <Route path="/my-submissions" element={<Layout><MySubmissions /></Layout>} />
-      <Route path="/my-results"     element={<Layout><MyResults /></Layout>} />
+      <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+      <Route path="/certificates" element={<ProtectedRoute><Layout><Certificates /></Layout></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
+      <Route path="/my-hackathons" element={<ProtectedRoute><Layout><MyHackathons /></Layout></ProtectedRoute>} />
+      <Route path="/explore-hackathons" element={<ProtectedRoute><Layout><ExploreHackathons /></Layout></ProtectedRoute>} />
+      <Route path="/my-submissions" element={<Navigate to="/my-hackathons" replace />} />
+      <Route path="/my-results" element={<ProtectedRoute><Layout><MyResults /></Layout></ProtectedRoute>} />
 
       {/* Admin */}
-      <Route path="/admin" element={<AdminDashboard />} />
-      <Route path="/admin/hackathons" element={<HackathonList />} />
-      <Route path="/admin/hackathons/create" element={<CreateHackathon />} />
-      <Route path="/admin/hackathons/edit/:id" element={<CreateHackathon />} />
-      <Route path="/admin/users" element={<UserManagement />} />
-      <Route path="/admin/hackathons/:id/judges" element={<AssignJudges />} />
-      <Route path="/admin/hackathons/:id/winners" element={<DeclareWinners />} />
-      <Route path="/admin/reports" element={<RevenueReports />} />
-      <Route path="/admin/universities" element={<UniversityManagement />} />
-      <Route path="/admin/certificates" element={<CertificateManagement />} />
+      <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
+      <Route path="/admin/hackathons" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout><HackathonList /></AdminLayout></ProtectedRoute>} />
+      <Route path="/admin/hackathons/create" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout><CreateHackathon /></AdminLayout></ProtectedRoute>} />
+      <Route path="/admin/hackathons/edit/:id" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout><CreateHackathon /></AdminLayout></ProtectedRoute>} />
+      <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout><UserManagement /></AdminLayout></ProtectedRoute>} />
+      <Route path="/admin/hackathons/:id/judges" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout><AssignJudges /></AdminLayout></ProtectedRoute>} />
+      <Route path="/admin/hackathons/:id/winners" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout><DeclareWinners /></AdminLayout></ProtectedRoute>} />
+      <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout><RevenueReports /></AdminLayout></ProtectedRoute>} />
+      <Route path="/admin/universities" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout><UniversityManagement /></AdminLayout></ProtectedRoute>} />
+      <Route path="/admin/certificates" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout><CertificateManagement /></AdminLayout></ProtectedRoute>} />
+      <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={['admin']}><AdminLayout><AdminNotifications /></AdminLayout></ProtectedRoute>} />
 
       {/* Judge */}
-      <Route path="/judge" element={<JudgeDashboard />} />
-      <Route path="/judge/score/:submissionId" element={<ScoreSubmission />} />
+      <Route path="/judge" element={<ProtectedRoute allowedRoles={['judge']}><JudgeDashboard /></ProtectedRoute>} />
+      <Route path="/judge/score/:submissionId" element={<ProtectedRoute allowedRoles={['judge']}><ScoreSubmission /></ProtectedRoute>} />
 
       {/* University */}
-      <Route path="/university" element={<UniversityDashboard />} />
-      <Route path="/university/reports" element={<UniversityReports />} />
+      <Route path="/university" element={<ProtectedRoute allowedRoles={['university']}><UniversityDashboard /></ProtectedRoute>} />
+      <Route path="/university/reports" element={<ProtectedRoute allowedRoles={['university']}><UniversityReports /></ProtectedRoute>} />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   )
-}
+}

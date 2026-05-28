@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
+import NotificationDrawer from "../../pages/participant/NotificationDrawer";
 import { logout } from "../../store/authSlice";
 
 const navItems = [
@@ -15,6 +16,17 @@ const navItems = [
     ),
   },
   {
+    label: "Explore Hackathons",
+    path: "/explore-hackathons",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      </svg>
+    ),
+  },
+  {
     label: "My Hackathons",
     path: "/My-hackathons",
     icon: (
@@ -23,16 +35,7 @@ const navItems = [
       </svg>
     ),
   },
-  {
-    label: "Project Submission",
-    path: "/my-submissions",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
-      </svg>
-    ),
-  },
+
   {
     label: "Certificates",
     path: "/certificates",
@@ -40,16 +43,6 @@ const navItems = [
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="8" r="6" />
         <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
-      </svg>
-    ),
-  },
-  {
-    label: "Results",
-    path: "/my-results",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" />
-        <line x1="6" y1="20" x2="6" y2="14" />
       </svg>
     ),
   },
@@ -627,25 +620,43 @@ export default function Sidebar({ collapsed, setCollapsed }) {
           </div>
         </div>
 
-        {/* Nav */}
-        <div className="sb-section-label">Main Menu</div>
-        <ul className="sb-nav">
-          {navItems.map((item) => (
-            <li key={item.path}>
-              <NavLink
-                to={item.path}
-                className={({ isActive }) => `sb-nav-link${isActive ? " active" : ""}`}
-                onClick={handleNavClick}
-              >
-                <span className="sb-icon-wrap">{item.icon}</span>
-                <span className="sb-link-label">{item.label}</span>
-              </NavLink>
-              {collapsed && <span className="sb-tooltip">{item.label}</span>}
-            </li>
-          ))}
-        </ul>
+     {/* Nav */}
+<div className="sb-section-label">Main Menu</div>
+<ul className="sb-nav">
+  {navItems.map((item) => (
+    <li key={item.path}>
+      <NavLink
+        to={item.path}
+        className={({ isActive }) => `sb-nav-link${isActive ? " active" : ""}`}
+        onClick={handleNavClick}
+      >
+        <span className="sb-icon-wrap">{item.icon}</span>
+        <span className="sb-link-label">{item.label}</span>
+      </NavLink>
+      {collapsed && <span className="sb-tooltip">{item.label}</span>}
+    </li>
+  ))}
 
-        <div className="sb-divider" />
+ {/* Notifications — NotificationDrawer */}
+  <li style={{ position: "relative" }}>
+    <div className="sb-nav-link" style={{ cursor: "pointer", padding: "10px 13px" }}>
+      <span className="sb-icon-wrap">
+        <NotificationDrawer />
+      </span>
+      {!collapsed && (
+        <span className="sb-link-label"
+          onClick={() => document.querySelector(".nd-bell-btn")?.click()}
+        >
+          Notifications
+        </span>
+      )}
+    </div>
+    {collapsed && <span className="sb-tooltip">Notifications</span>}
+  </li>
+
+</ul>
+
+<div className="sb-divider" />
 
         {/* Logout */}
         <div className="sb-logout-wrap">

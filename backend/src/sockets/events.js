@@ -24,6 +24,7 @@ export const SOCKET_EVENTS = {
     DRAFT_READY: 'draft-ready',
     DRAFT_UPDATED: 'draft-updated',
     RESULTS_PUBLISHED: 'results-published',
+    NOTIFICATION_RECEIVED: 'notification.created',
     // Errors
     ERROR: 'error'
   }

@@ -3,6 +3,8 @@
  * Defines Express routes for admin hackathon operations.
  */
 import { Router } from "express";
+import formidable from "formidable";
+import ApiError from "../../../libs/apiError.js";
 import asyncHandler from "../../../libs/asyncHandler.js";
 import adminHackathonController from "./adminHackathon.controller.js";
 import { verifyAdmin, verifyJWT } from "../../../middleware/auth.middleware.js";
@@ -15,6 +17,81 @@ import {
 
 const router = Router();
 
+const HACKATHON_SCALAR_FIELDS = {
+  title: true,
+  problemStatement: true,
+  slug: true,
+  description: true,
+  startDate: true,
+  endDate: true,
+  registrationDeadline: true,
+  submissionDeadline: true,
+  prizePool: true,
+  registrationFee: true,
+  currency: true,
+  minTeamSize: true,
+  maxTeamSize: true,
+  status: true,
+  detailsPdfUrl: true
+};
+
+const multipartMiddleware = (req, res, next) => {
+  const isMultipart =
+    req.is("multipart/form-data") ||
+    req.headers["content-type"]?.startsWith("multipart/");
+
+  if (!isMultipart) {
+    return next();
+  }
+
+  const form = formidable({
+    maxFileSize: 10 * 1024 * 1024, // 10MB
+    maxFiles: 1,
+    keepExtensions: true,
+    filter: ({ mimetype }) => {
+      return !!mimetype && mimetype === "application/pdf";
+    }
+  });
+
+  form.parse(req, (err, fields, files) => {
+    if (err) {
+      return next(new ApiError(400, err.message || "Invalid PDF upload file"));
+    }
+
+    const normalisedFields = {};
+    const normalisedFiles = {};
+
+    for (const [key, value] of Object.entries(fields)) {
+      const rawArray = Array.isArray(value) ? value : [value];
+      
+      // Check if the value is JSON-encoded
+      if (rawArray[0] && typeof rawArray[0] === 'string' && (rawArray[0].startsWith('[') || rawArray[0].startsWith('{'))) {
+        try {
+          normalisedFields[key] = JSON.parse(rawArray[0]);
+          continue;
+        } catch (e) {
+          // If it fails parsing, fall through
+        }
+      }
+
+      if (HACKATHON_SCALAR_FIELDS[key]) {
+        normalisedFields[key] = rawArray[0];
+      } else {
+        // Keep array fields as array of strings
+        normalisedFields[key] = rawArray;
+      }
+    }
+
+    for (const [key, value] of Object.entries(files)) {
+      normalisedFiles[key] = Array.isArray(value) ? value[0] : value;
+    }
+
+    req.files = normalisedFiles;
+    req.body = normalisedFields;
+    next();
+  });
+};
+
 // Apply admin middleware to routes that require admin access
 
 // Create a new hackathon
@@ -22,6 +99,7 @@ router.post(
   "/create-hackathon",
   verifyJWT,
   verifyAdmin,
+  multipartMiddleware,
   validate(createHackathonValidation),
   asyncHandler(adminHackathonController.createHackathon)
 );
@@ -47,6 +125,7 @@ router.patch(
   "/:hackathonId",
   verifyJWT,
   verifyAdmin,
+  multipartMiddleware,
   validate(updateHackathonValidation),
   asyncHandler(adminHackathonController.updateHackathon)
 );

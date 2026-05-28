@@ -15,6 +15,13 @@ import User from '../../users/user.model.js';
 import Team from '../../teams/team.model.js';
 import { scoreStatus } from '../../judging/judging.constants.js';
 import { computeRankings } from '../../results/ranking.service.js';
+import {
+  emitScoreApproved,
+  emitScoreRejected,
+  emitRankingUpdated,
+  emitDraftReady,
+  emitProgressUpdate
+} from '../../../sockets/publisher/socket.publisher.js';
 
 class ReviewQueueService {
 
@@ -236,6 +243,18 @@ class ReviewQueueService {
 
     await ResultDraft.insertMany(finalDrafts);
 
+    // ── Real-time socket push ────────────────────────────────────────
+    emitRankingUpdated(hackathonId, {
+      hackathonId:    hackathonId.toString(),
+      source:         'draft_generated',
+      totalEntries:   finalDrafts.length
+    });
+    emitDraftReady(hackathonId, {
+      hackathonId:    hackathonId.toString(),
+      computedCount:  finalDrafts.length,
+      unresolvedTies
+    });
+
     return {
       success: true,
       computedCount: finalDrafts.length,
@@ -365,6 +384,41 @@ class ReviewQueueService {
     if (!updated) {
       throw new ApiError(409, 'Queue item could not be resolved due to concurrent update.');
     }
+
+    // ── Real-time socket push ────────────────────────────────────────
+    const scoreRecommendation = item.scoreRecommendation || {};
+    const hackathonRoomId = item.hackathonId.toString();
+
+    if (status === 'approved') {
+      emitScoreApproved(hackathonRoomId, {
+        queueId:           queueId.toString(),
+        scoreId:           item.scoreId?.toString(),
+        judgeId:           item.judgeId?.toString(),
+        submissionId:      item.submissionId?.toString(),
+        totalScore:        scoreRecommendation.totalScore,
+        criterionScores:   scoreRecommendation.criterionScores.map(c => c.toObject ? c.toObject() : c),
+        feedback:          scoreRecommendation.feedback || '',
+        adminComment:      adminComment || '',
+        resolvedBy:        resolvedById.toString()
+      });
+    } else {
+      emitScoreRejected(hackathonRoomId, {
+        queueId:           queueId.toString(),
+        scoreId:           item.scoreId?.toString(),
+        judgeId:           item.judgeId?.toString(),
+        submissionId:      item.submissionId?.toString(),
+        totalScore:        scoreRecommendation.totalScore,
+        adminComment:      adminComment || '',
+        resolvedBy:        resolvedById.toString()
+      });
+    }
+
+    emitProgressUpdate(hackathonRoomId, {
+      hackathonId:       hackathonRoomId,
+      resolved:          true,
+      resolution:        status,
+      queueId:           queueId.toString()
+    });
 
     return updated;
   }

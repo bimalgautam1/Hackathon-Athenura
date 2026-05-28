@@ -1,5 +1,6 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { authService } from "../../services/authService";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Poppins:wght@400;500;600;700&display=swap');
@@ -777,6 +778,7 @@ export default function Register() {
     collegeOrUniversity: "", graduationYear: "",
     skills: [],
     resumeLink: "",
+    secretKey: "",
   });
   const [skillInput, setSkillInput] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -817,26 +819,27 @@ export default function Register() {
   const validateStep = (s) => {
     const e = {};
     if (s === 0) {
-      if (!form.firstName.trim()) e.firstName = "First name required";
-      if (!form.lastName.trim())  e.lastName  = "Last name required";
-      if (!form.email.trim())     e.email     = "Email required";
-      else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Enter a valid email";
-      if (!form.phone.trim())     e.phone     = "Phone number required";
-      else if (!/^\+?[\d\s\-]{7,15}$/.test(form.phone)) e.phone = "Enter a valid phone number";
+      if (!form.firstName.trim()) e.firstName = "First name is required";
+      if (!form.lastName.trim())  e.lastName  = "Last name is required";
+      if (!form.email.trim())     e.email     = "Email is required";
+      else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Invalid email format";
+      if (!form.phone.trim())     e.phone     = "Phone number is required";
+      else if (!/^\+?[\d\s\-]{7,15}$/.test(form.phone)) e.phone = "Invalid phone number";
     }
     if (s === 1) {
       if (!form.gender) e.gender = "Please select a gender";
-      if (!form.collegeOrUniversity.trim()) e.collegeOrUniversity = "College/University required";
-      if (!form.graduationYear) e.graduationYear = "Graduation year required";
+      if (!form.collegeOrUniversity.trim()) e.collegeOrUniversity = "University/College is required";
+      if (!form.graduationYear) e.graduationYear = "Graduation year is required";
+      if (form.skills.length === 0) e.skills = "Add at least one skill";
     }
     if (s === 2) {
-      if (!form.password)          e.password        = "Password required";
-      else if (form.password.length < 6)   e.password = "Min 6 characters";
+      if (!form.password)          e.password        = "Password is required";
+      else if (form.password.length < 6)   e.password = "Min 6 characters required";
       else if (!/[A-Z]/.test(form.password)) e.password = "Need at least 1 uppercase letter";
       else if (!/[^A-Za-z0-9]/.test(form.password)) e.password = "Need at least 1 special character";
-      if (!form.confirmPassword)   e.confirmPassword  = "Confirm your password";
-      else if (form.password !== form.confirmPassword) e.confirmPassword = "Passwords don't match";
-      if (!agreed) e.agreed = "Please accept the terms";
+      if (!form.confirmPassword)   e.confirmPassword  = "Please confirm your password";
+      else if (form.password !== form.confirmPassword) e.confirmPassword = "Passwords do not match";
+      if (!agreed) e.agreed = "You must accept the Terms of Service";
     }
     return e;
   };
@@ -858,8 +861,56 @@ export default function Register() {
     if (Object.keys(e).length) { setErrors(e); return; }
     setErrors({});
     setLoading(true);
-    // TODO: API call here
-    setTimeout(() => setLoading(false), 2000);
+
+    try {
+      const payload = {
+        fullName: `${form.firstName} ${form.lastName}`.trim(),
+        email: form.email,
+        password: form.password,
+        gender: form.gender,
+      };
+
+      if (form.phone && form.phone.trim()) {
+        const cleanedPhone = form.phone.replace(/\D/g, "");
+        if (cleanedPhone) {
+          payload.phone = Number(cleanedPhone);
+        }
+      }
+
+      if (form.dateOfBirth && form.dateOfBirth.trim()) {
+        payload.dateOfBirth = form.dateOfBirth;
+      }
+
+      if (form.collegeOrUniversity && form.collegeOrUniversity.trim()) {
+        payload.collegeOrUniversity = form.collegeOrUniversity;
+      }
+
+      if (form.graduationYear) {
+        payload.graduationYear = parseInt(form.graduationYear, 10);
+      }
+
+      if (form.resumeLink && form.resumeLink.trim()) {
+        payload.resumeLink = form.resumeLink;
+      }
+
+      if (form.skills && form.skills.length > 0) {
+        payload.skills = form.skills;
+      }
+
+      if (form.secretKey && form.secretKey.trim()) {
+        payload.secretKey = form.secretKey.trim();
+      }
+
+      const res = await authService.register(payload);
+      
+      navigate('/verify-email', { state: { email: form.email } });
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || "Registration failed. Please check your network.";
+      setErrors({ server: msg });
+      alert(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const yearOptions = [];
@@ -1215,6 +1266,20 @@ export default function Register() {
                   </div>
                 </div>
 
+                <div className="field-wrap" style={{ width: "100%" }}>
+                  <div className="input-group">
+                    <input className={`form-input${form.secretKey ? " has-value" : ""}`} id="reg-skey"
+                      name="secretKey" type="password"
+                      placeholder="" value={form.secretKey || ""} onChange={setField("secretKey")} />
+                    <label className="float-label" htmlFor="reg-skey">Secret Key (Optional - for Admin/Judge/University)</label>
+                    <svg className="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                  <div style={{ minHeight: 15 }} />
+                </div>
+
                 <div style={{ width: "100%", background: "#f0fbff", borderRadius: 8, padding: "8px 12px", marginBottom: 10, border: "1px solid #e0f4fa" }}>
                   <p style={{ fontSize: 10.5, color: "#0096c7", fontFamily: "'Poppins', sans-serif", lineHeight: 1.7, margin: 0 }}>
                     Password must be min 6 chars, include <strong>1 uppercase</strong> letter &amp; <strong>1 special character</strong> (e.g. @, #, !)
@@ -1262,7 +1327,7 @@ export default function Register() {
 
                 <div className="btn-row">
                   <button className="btn-back" onClick={handleBack}>← Back</button>
-                  <button className={`register-btn${loading ? " loading" : ""}`} onClick={handleSubmit}>
+                  <button className={`register-btn${loading ? " loading" : ""}`} onClick={handleSubmit} type="button">
                     {loading && <span className="spinner" />}
                     <span>{loading ? "Creating account..." : "Create Account"}</span>
                   </button>
